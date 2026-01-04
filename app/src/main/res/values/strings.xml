@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Colora</string>
+    <string name="new_painting">New painting page</string>
+    <string name="gallery">Gallery page</string>
+</resources>
