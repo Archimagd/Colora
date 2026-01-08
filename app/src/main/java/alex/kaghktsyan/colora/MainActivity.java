@@ -1,4 +1,4 @@
-package com.example.colora;
+package alex.kaghktsyan.colora;
 
 import android.content.Intent;
 import android.os.Bundle;

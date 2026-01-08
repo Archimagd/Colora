@@ -6,7 +6,7 @@
     android:background="#c9dcff"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".GalleryActivity">
+    tools:context="alex.kaghktsyan.colora.GalleryActivity">
 
     <TextView
         android:id="@+id/textView2"

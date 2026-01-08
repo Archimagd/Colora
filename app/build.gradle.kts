@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.colora"
+    namespace = "alex.kaghktsyan.colora"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.colora"
+        applicationId = "alex.kaghktsyan.colora"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

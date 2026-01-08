@@ -12,13 +12,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Colora">
         <activity
-            android:name=".GalleryActivity"
+            android:name="alex.kaghktsyan.colora.GalleryActivity"
             android:exported="false" />
         <activity
-            android:name=".NewPaintingActivity"
+            android:name="alex.kaghktsyan.colora.NewPaintingActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name="alex.kaghktsyan.colora.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
