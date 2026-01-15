@@ -20,9 +20,13 @@ public class DrawingView extends View {
     private Canvas bitmapCanvas;
     private float lastX, lastY;
 
+    private boolean isEraserMode = false;
+    private int currentColor = Color.BLACK;
+    private float currentStrokeWidth = 10;
+    private int backgroundColor = Color.WHITE;
+
     private List<PathWithPaint> paths = new ArrayList<>();
     private List<PathWithPaint> undonePaths = new ArrayList<>();
-
 
     private static class PathWithPaint {
         Path path;
@@ -147,28 +151,49 @@ public class DrawingView extends View {
     }
 
     public void setColor(int color) {
-        paint.setColor(color);
-    }
-
-    public void setStrokeWidth(float width) {
-        paint.setStrokeWidth(width);
+        currentColor = color;
+        if (!isEraserMode) {
+            paint.setColor(color);
+        }
     }
 
     public int getColor() {
-        return paint.getColor();
+        return currentColor;
+    }
+
+    public void setStrokeWidth(float width) {
+        currentStrokeWidth = width;
+        paint.setStrokeWidth(width);
     }
 
     public float getStrokeWidth() {
-        return paint.getStrokeWidth();
+        return currentStrokeWidth;
     }
 
     public Bitmap getBitmap() {
         return Bitmap.createBitmap(bitmap);
     }
 
-    public void setEraserMode(boolean isEraser) {
-        if (isEraser) {
-            paint.setColor(Color.WHITE);
+    public void setEraserMode(boolean enabled) {
+        isEraserMode = enabled;
+        if (enabled) {
+            paint.setColor(backgroundColor);
+        } else {
+            paint.setColor(currentColor);
         }
+    }
+
+    public boolean isEraserMode() {
+        return isEraserMode;
+    }
+
+    public void toggleEraser() {
+        setEraserMode(!isEraserMode);
+    }
+
+    public void setBackgroundColor(int color) {
+        backgroundColor = color;
+        bitmap.eraseColor(backgroundColor);
+        redrawAllPaths();
     }
 }

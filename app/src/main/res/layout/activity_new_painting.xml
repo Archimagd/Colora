@@ -38,6 +38,21 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#DDDDDD">
+
+        <Button
+            android:id="@+id/btnEraser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Eraser off"/>
+    </LinearLayout>
+
+
     <alex.kaghktsyan.colora.DrawingView
         android:id="@+id/drawingView"
         android:layout_width="match_parent"
