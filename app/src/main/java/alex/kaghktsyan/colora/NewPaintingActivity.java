@@ -3,6 +3,8 @@ package alex.kaghktsyan.colora;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -15,6 +17,8 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private DrawingView drawingView;
     private Button btnUndo, btnRedo, btnClear, btnEraser;
+    private SeekBar seekBarStroke;
+    private TextView txtStrokeWidth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +36,8 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnRedo = findViewById(R.id.btnRedo);
         btnClear = findViewById(R.id.btnClear);
         btnEraser = findViewById(R.id.btnEraser);
+        seekBarStroke = findViewById(R.id.seekBarStroke);
+        txtStrokeWidth = findViewById(R.id.txtStrokeWidth);
 
         btnUndo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -60,6 +66,21 @@ public class NewPaintingActivity extends AppCompatActivity {
                 drawingView.toggleEraser();
                 updateEraserButton();
             }
+        });
+
+        seekBarStroke.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int strokeWidth = Math.max(1, progress);
+                drawingView.setStrokeWidth(strokeWidth);
+                txtStrokeWidth.setText(String.valueOf(strokeWidth));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         });
     }
 

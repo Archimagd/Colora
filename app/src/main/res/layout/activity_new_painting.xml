@@ -52,6 +52,37 @@
             android:text="Eraser off"/>
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Brush Size: "
+            android:textSize="16sp"
+            android:layout_marginEnd="8dp"/>
+
+        <TextView
+            android:id="@+id/txtStrokeWidth"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:text="10"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginEnd="8dp"/>
+
+        <SeekBar
+            android:id="@+id/seekBarStroke"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="50"
+            android:progress="10"/>
+    </LinearLayout>
+
 
     <alex.kaghktsyan.colora.DrawingView
         android:id="@+id/drawingView"
