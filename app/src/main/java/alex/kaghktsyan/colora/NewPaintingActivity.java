@@ -1,5 +1,7 @@
 package alex.kaghktsyan.colora;
 
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -12,11 +14,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public class NewPaintingActivity extends AppCompatActivity {
 
     private DrawingView drawingView;
-    private Button btnUndo, btnRedo, btnClear, btnEraser;
+    private Button btnUndo, btnRedo, btnClear, btnEraser, btnColor;
     private SeekBar seekBarStroke;
     private TextView txtStrokeWidth;
 
@@ -38,6 +41,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnEraser = findViewById(R.id.btnEraser);
         seekBarStroke = findViewById(R.id.seekBarStroke);
         txtStrokeWidth = findViewById(R.id.txtStrokeWidth);
+        btnColor = findViewById(R.id.btnColor);
 
         btnUndo.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -68,6 +72,13 @@ public class NewPaintingActivity extends AppCompatActivity {
             }
         });
 
+        btnColor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showColorPickerBottomSheet();
+            }
+        });
+
         seekBarStroke.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -82,6 +93,53 @@ public class NewPaintingActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
+    }
+
+    private void showColorPickerBottomSheet() {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(40, 40, 40, 80);
+
+        TextView title = new TextView(this);
+        title.setText("Select Color");
+        title.setTextSize(20);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 30);
+        layout.addView(title);
+
+        ColorPickerView colorPickerView = new ColorPickerView(this);
+        colorPickerView.setColor(drawingView.getColor());
+        layout.addView(colorPickerView);
+
+        Button btnSelect = new Button(this);
+        btnSelect.setText("Select");
+        android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.topMargin = 40;
+        btnSelect.setLayoutParams(params);
+
+        btnSelect.setOnClickListener(v -> {
+            int selectedColor = colorPickerView.getColor();
+            drawingView.setColor(selectedColor);
+            btnColor.setBackgroundTintList(ColorStateList.valueOf(selectedColor));
+
+            float[] hsv = new float[3];
+            Color.colorToHSV(selectedColor, hsv);
+            if (hsv[2] > 0.7) {
+                btnColor.setTextColor(Color.BLACK);
+            } else {
+                btnColor.setTextColor(Color.WHITE);
+            }
+            bottomSheetDialog.dismiss();
+        });
+
+        layout.addView(btnSelect);
+
+        bottomSheetDialog.setContentView(layout);
+        bottomSheetDialog.show();
     }
 
     private void updateEraserButton() {

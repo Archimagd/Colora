@@ -50,6 +50,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Eraser off"/>
+
+        <Button
+            android:id="@+id/btnColor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Color"
+            android:backgroundTint="#000000"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
 
     <LinearLayout
