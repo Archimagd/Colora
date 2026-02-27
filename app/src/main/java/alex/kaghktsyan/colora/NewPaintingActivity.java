@@ -111,6 +111,13 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         ColorPickerView colorPickerView = new ColorPickerView(this);
         colorPickerView.setColor(drawingView.getColor());
+        
+        // real time color update
+        colorPickerView.setOnColorChangedListener(color -> {
+            updateColorButton(color);
+            drawingView.setColor(color);
+        });
+        
         layout.addView(colorPickerView);
 
         Button btnSelect = new Button(this);
@@ -124,15 +131,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnSelect.setOnClickListener(v -> {
             int selectedColor = colorPickerView.getColor();
             drawingView.setColor(selectedColor);
-            btnColor.setBackgroundTintList(ColorStateList.valueOf(selectedColor));
-
-            float[] hsv = new float[3];
-            Color.colorToHSV(selectedColor, hsv);
-            if (hsv[2] > 0.7) {
-                btnColor.setTextColor(Color.BLACK);
-            } else {
-                btnColor.setTextColor(Color.WHITE);
-            }
+            updateColorButton(selectedColor);
             bottomSheetDialog.dismiss();
         });
 
@@ -140,6 +139,17 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         bottomSheetDialog.setContentView(layout);
         bottomSheetDialog.show();
+    }
+
+    private void updateColorButton(int color) {
+        btnColor.setBackgroundTintList(ColorStateList.valueOf(color));
+        float[] hsv = new float[3];
+        Color.colorToHSV(color, hsv);
+        if (hsv[2] > 0.7) {
+            btnColor.setTextColor(Color.BLACK);
+        } else {
+            btnColor.setTextColor(Color.WHITE);
+        }
     }
 
     private void updateEraserButton() {
