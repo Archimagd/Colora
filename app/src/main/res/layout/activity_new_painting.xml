@@ -36,6 +36,14 @@
             android:layout_weight="1"
             android:text="Clear" />
 
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
+            android:text="Save" />
+
     </LinearLayout>
 
     <LinearLayout
@@ -59,6 +67,13 @@
             android:text="Color"
             android:backgroundTint="#000000"
             android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnLayers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Layers" />
     </LinearLayout>
 
     <LinearLayout
