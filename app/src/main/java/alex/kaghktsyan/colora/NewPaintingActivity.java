@@ -4,6 +4,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +16,6 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -39,11 +39,25 @@ public class NewPaintingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Включаем Edge-to-Edge
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_new_painting);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+
+        // Убираем принудительный контраст для панели навигации (чтобы не было серой полосы)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+
+        View mainView = findViewById(R.id.main);
+        ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            // Мы применяем padding только сверху (для статус-бара), 
+            // чтобы кнопки не уходили под него.
+            // Снизу padding НЕ ставим (0), чтобы холст занимал всё пространство до конца экрана.
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
 
@@ -57,6 +71,9 @@ public class NewPaintingActivity extends AppCompatActivity {
         seekBarStroke = findViewById(R.id.seekBarStroke);
         txtStrokeWidth = findViewById(R.id.txtStrokeWidth);
         btnColor = findViewById(R.id.btnColor);
+
+        // Устанавливаем белый фон для DrawingView и его родителя, на всякий случай
+        drawingView.setBackgroundColor(Color.WHITE);
 
         String imagePath = getIntent().getStringExtra("image_path");
         if (imagePath != null) {
@@ -81,7 +98,6 @@ public class NewPaintingActivity extends AppCompatActivity {
         });
 
         btnLayers.setOnClickListener(v -> showLayersBottomSheet());
-
         btnColor.setOnClickListener(v -> showColorPickerBottomSheet());
 
         seekBarStroke.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -100,8 +116,6 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private void showLayersBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(android.R.layout.list_content, null);
-        
         android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
         layout.setPadding(20, 20, 20, 20);
@@ -120,7 +134,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnAddLayer.setOnClickListener(v -> {
             drawingView.addLayer("Layer " + (drawingView.getLayers().size() + 1));
             dialog.dismiss();
-            showLayersBottomSheet(); // Refresh
+            showLayersBottomSheet();
         });
         layout.addView(btnAddLayer);
 

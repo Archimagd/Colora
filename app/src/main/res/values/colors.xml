@@ -3,4 +3,12 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="purple">#bd4aff</color>
+    <color name="purple_main">#bd4aff</color>
+    <color name="pink_accent">#ff7597</color>
+    <color name="bg_dark">#0D0B10</color>
+    <color name="card_bg">#1A171E</color>
+    <color name="text_grey">#7A7A7A</color>
+    <color name="text_light_grey">#BDBDBD</color>
+    <color name="green_saved">#4CAF50</color>
+    <color name="chip_bg">#25222B</color>
 </resources>
