@@ -2,6 +2,14 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Colora" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <item name="android:windowBackground">?attr/backgroundColor</item>
+        <item name="colorSurface">?attr/backgroundColor</item>
+
+        <item name="backgroundColor">@color/bg_dark</item>
+        <item name="cardBackgroundColor">@color/card_bg_dark</item>
+        <item name="mainTextColor">@color/white</item>
+        <item name="secondaryTextColor">@color/text_grey_dark</item>
+        <item name="accentColor">@color/purple_main</item>
+        <item name="switchTrackColor">@color/chip_bg</item>
     </style>
 </resources>

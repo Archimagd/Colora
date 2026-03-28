@@ -5,8 +5,18 @@
     <color name="purple">#bd4aff</color>
     <color name="purple_main">#bd4aff</color>
     <color name="pink_accent">#ff7597</color>
+    
+    <!-- Dark Theme Colors -->
     <color name="bg_dark">#0D0B10</color>
-    <color name="card_bg">#1A171E</color>
+    <color name="card_bg_dark">#1A171E</color>
+    <color name="text_grey_dark">#7A7A7A</color>
+    
+    <!-- Light Theme Colors -->
+    <color name="bg_light">#FFFFFF</color>
+    <color name="card_bg_light">#F5F5F7</color>
+    <color name="text_grey_light">#8E8E93</color>
+    <color name="text_black">#000000</color>
+
     <color name="text_grey">#7A7A7A</color>
     <color name="text_light_grey">#BDBDBD</color>
     <color name="green_saved">#4CAF50</color>

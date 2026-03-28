@@ -15,4 +15,10 @@
     <string name="title_home">Главная</string>
     <string name="title_profile">Профиль</string>
     <string name="title_new_painting">Создать</string>
+
+    <string name="user_name">Художник</string>
+    <string name="user_email">artist@colora.app</string>
+    <string name="switch_theme">Переключить тему</string>
+    <string name="notifications">Уведомления</string>
+    <string name="about_app">О приложении</string>
 </resources>

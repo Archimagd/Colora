@@ -2,7 +2,15 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Colora" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="android:windowBackground">?attr/backgroundColor</item>
+        <item name="colorSurface">?attr/backgroundColor</item>
+
+        <item name="backgroundColor">@color/bg_light</item>
+        <item name="cardBackgroundColor">@color/card_bg_light</item>
+        <item name="mainTextColor">@color/text_black</item>
+        <item name="secondaryTextColor">@color/text_grey_light</item>
+        <item name="accentColor">@color/purple_main</item>
+        <item name="switchTrackColor">#D1D1D6</item>
     </style>
 
     <style name="Theme.Colora" parent="Base.Theme.Colora" />

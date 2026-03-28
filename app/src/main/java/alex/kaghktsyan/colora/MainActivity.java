@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.navigation_home) {
                 return true;
             } else if (id == R.id.navigation_profile) {
+                startActivity(new Intent(MainActivity.this, ProfileActivity.class));
                 return true;
             }
             return false;
@@ -92,28 +93,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadRecentDrawings() {
-        File directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Colora");
-        
-        if (!directory.exists()) {
-            return;
-        }
-
-        File[] files = directory.listFiles(file -> file.isFile() && (file.getName().endsWith(".png") || file.getName().endsWith(".jpg")));
-        
-        if (files != null && files.length > 0) {
-            Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+        new Thread(() -> {
+            File directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Colora");
             
-            recentContainer.removeAllViews();
-            int limit = Math.min(files.length, 10);
-            for (int i = 0; i < limit; i++) {
-                File file = files[i];
-                // Передаем true во второй параметр, чтобы карточки были маленькими
-                DrawingItemFragment fragment = DrawingItemFragment.newInstance(file.getAbsolutePath(), true);
-                getSupportFragmentManager().beginTransaction()
-                        .add(recentContainer.getId(), fragment)
-                        .commit();
+            if (!directory.exists()) {
+                return;
             }
-        }
+
+            File[] files = directory.listFiles(file -> file.isFile() && (file.getName().endsWith(".png") || file.getName().endsWith(".jpg")));
+            
+            if (files != null && files.length > 0) {
+                Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+                
+                final File[] finalFiles = files;
+                runOnUiThread(() -> {
+                    recentContainer.removeAllViews();
+                    int limit = Math.min(finalFiles.length, 10);
+                    for (int i = 0; i < limit; i++) {
+                        File file = finalFiles[i];
+                        DrawingItemFragment fragment = DrawingItemFragment.newInstance(file.getAbsolutePath(), true);
+                        getSupportFragmentManager().beginTransaction()
+                                .add(recentContainer.getId(), fragment)
+                                .commitAllowingStateLoss();
+                    }
+                });
+            }
+        }).start();
     }
 
     @Override

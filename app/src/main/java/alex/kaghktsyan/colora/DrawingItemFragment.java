@@ -3,6 +3,7 @@ package alex.kaghktsyan.colora;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 import java.io.File;
@@ -111,6 +113,18 @@ public class DrawingItemFragment extends Fragment {
                         if (getActivity() instanceof GalleryActivity) {
                             ((GalleryActivity) getActivity()).onFavoriteToggled();
                         }
+                    });
+                }
+
+                if (btnShare != null && !isSmall) {
+                    btnShare.setOnClickListener(v -> {
+                        Uri uri = FileProvider.getUriForFile(requireContext(), 
+                                requireContext().getPackageName() + ".fileprovider", imgFile);
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.setType("image/*");
+                        intent.putExtra(Intent.EXTRA_STREAM, uri);
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(Intent.createChooser(intent, "Поделиться рисунком"));
                     });
                 }
 

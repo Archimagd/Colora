@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
+    android:background="?attr/backgroundColor"
     tools:context="alex.kaghktsyan.colora.GalleryActivity">
 
     <!-- Header -->
@@ -22,8 +22,8 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/search_bg"
-            android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/white" />
+            android:src="@drawable/ic_back"
+            android:tint="?attr/mainTextColor" />
 
         <TextView
             android:layout_width="0dp"
@@ -32,7 +32,7 @@
             android:layout_weight="1"
             android:fontFamily="serif"
             android:text="Галерея"
-            android:textColor="@color/white"
+            android:textColor="?attr/mainTextColor"
             android:textSize="24sp"
             android:textStyle="bold" />
 
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
             android:text="0 работы"
-            android:textColor="@color/text_grey"
+            android:textColor="?attr/secondaryTextColor"
             android:textSize="14sp" />
 
         <ImageButton
@@ -52,7 +52,7 @@
             android:background="@drawable/photo_button_bg"
             android:backgroundTint="@color/purple_main"
             android:src="@android:drawable/ic_input_add"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
     </LinearLayout>
 
     <!-- Search & Filter -->
@@ -74,8 +74,8 @@
             android:drawablePadding="12dp"
             android:hint="Поиск по названию..."
             android:paddingHorizontal="16dp"
-            android:textColor="@color/white"
-            android:textColorHint="@color/text_grey"
+            android:textColor="?attr/mainTextColor"
+            android:textColorHint="?attr/secondaryTextColor"
             android:textSize="14sp" />
 
         <ImageButton
@@ -84,7 +84,7 @@
             android:layout_marginStart="12dp"
             android:background="@drawable/search_bg"
             android:src="@android:drawable/ic_menu_sort_by_size"
-            android:tint="@color/white" />
+            app:tint="?attr/mainTextColor" />
     </LinearLayout>
 
     <!-- Chips -->
@@ -112,7 +112,7 @@
                 android:paddingHorizontal="20dp"
                 android:paddingVertical="8dp"
                 android:text="Все"
-                android:textColor="@color/white" />
+                android:textColor="?attr/mainTextColor" />
 
             <CheckBox
                 android:id="@+id/chipRecent"
@@ -124,7 +124,7 @@
                 android:paddingHorizontal="20dp"
                 android:paddingVertical="8dp"
                 android:text="Недавние"
-                android:textColor="@color/white" />
+                android:textColor="?attr/mainTextColor" />
 
             <CheckBox
                 android:id="@+id/chipFavorites"
@@ -136,7 +136,7 @@
                 android:paddingHorizontal="20dp"
                 android:paddingVertical="8dp"
                 android:text="Избранное"
-                android:textColor="@color/white" />
+                android:textColor="?attr/mainTextColor" />
         </LinearLayout>
     </HorizontalScrollView>
 
