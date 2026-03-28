@@ -1,117 +1,431 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/main"
-    android:orientation="vertical">
+    android:background="?attr/backgroundColor">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#EEEEEE"
-        android:orientation="horizontal"
-        android:padding="8dp">
+    <!-- Top Action Bar -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/topBar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_margin="12dp"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <Button
-            android:id="@+id/btnUndo"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="Undo" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
 
-        <Button
-            android:id="@+id/btnRedo"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="Redo" />
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back"
+                app:tint="?attr/mainTextColor" />
 
-        <Button
-            android:id="@+id/btnClear"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="Clear" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
 
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="Save" />
+            <ImageButton
+                android:id="@+id/btnHand"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_hand"
+                app:tint="?attr/mainTextColor" />
 
-    </LinearLayout>
+            <ImageButton
+                android:id="@+id/btnZoom"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_zoom_in"
+                app:tint="?attr/mainTextColor" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:background="#DDDDDD">
+            <View
+                android:layout_width="12dp"
+                android:layout_height="match_parent" />
 
-        <Button
-            android:id="@+id/btnEraser"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Eraser off"/>
+            <ImageButton
+                android:id="@+id/btnUndo"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_undo"
+                app:tint="?attr/mainTextColor" />
 
-        <Button
-            android:id="@+id/btnColor"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Color"
-            android:backgroundTint="#000000"
-            android:textColor="#FFFFFF"/>
+            <ImageButton
+                android:id="@+id/btnRedo"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_redo"
+                app:tint="?attr/mainTextColor" />
 
-        <Button
-            android:id="@+id/btnLayers"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Layers" />
-    </LinearLayout>
+            <View
+                android:layout_width="12dp"
+                android:layout_height="match_parent" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Brush Size: "
-            android:textSize="16sp"
-            android:layout_marginEnd="8dp"/>
+            <ImageButton
+                android:id="@+id/btnLayers"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_layers"
+                app:tint="?attr/mainTextColor" />
 
-        <TextView
-            android:id="@+id/txtStrokeWidth"
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:text="10"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginEnd="8dp"/>
+            <ImageButton
+                android:id="@+id/btnSave"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_save"
+                app:tint="@color/purple_main" />
 
-        <SeekBar
-            android:id="@+id/seekBarStroke"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="50"
-            android:progress="10"/>
-    </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-
+    <!-- Canvas Area -->
     <alex.kaghktsyan.colora.DrawingView
         android:id="@+id/drawingView"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        app:layout_constraintBottom_toTopOf="@+id/bottomControls"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar" />
 
-</LinearLayout>
+    <!-- Left Side Tools -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/sideTools"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toTopOf="@+id/bottomControls"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar">
+
+        <ScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="6dp">
+
+                <ImageButton
+                    android:id="@+id/toolBrush"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_brush"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolEraser"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_eraser"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolFill"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_fill"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolPicker"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_eyedropper"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolShapes"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_shapes"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolText"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_text"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/toolSelect"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_rect"
+                    app:tint="?attr/mainTextColor" />
+
+            </LinearLayout>
+        </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Shapes Horizontal Panel -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/shapesPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="@id/sideTools"
+        app:layout_constraintStart_toEndOf="@id/sideTools"
+        app:layout_constraintTop_toTopOf="@id/sideTools">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="6dp">
+
+            <ImageButton
+                android:id="@+id/shapeLine"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_line"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/shapeRect"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_rect"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/shapeCircle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_circle"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/shapeTriangle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_triangle"
+                app:tint="?attr/mainTextColor" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bottom Controls -->
+    <LinearLayout
+        android:id="@+id/bottomControls"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Settings Panel -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/settingsPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="8dp"
+            app:cardBackgroundColor="?attr/cardBackgroundColor"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="Размер"
+                        android:textColor="?attr/secondaryTextColor"
+                        android:textSize="11sp" />
+
+                    <SeekBar
+                        android:id="@+id/sbSize"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="20" />
+
+                    <TextView
+                        android:id="@+id/tvSizeValue"
+                        android:layout_width="30dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="20"
+                        android:textColor="?attr/mainTextColor"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="Прозрачность"
+                        android:textColor="?attr/secondaryTextColor"
+                        android:textSize="11sp" />
+
+                    <SeekBar
+                        android:id="@+id/sbOpacity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="255"
+                        android:progress="255" />
+
+                    <TextView
+                        android:id="@+id/tvOpacityValue"
+                        android:layout_width="30dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="255"
+                        android:textColor="?attr/mainTextColor"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="70dp"
+                        android:layout_height="wrap_content"
+                        android:text="Жёсткость"
+                        android:textColor="?attr/secondaryTextColor"
+                        android:textSize="11sp" />
+
+                    <SeekBar
+                        android:id="@+id/sbHardness"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="100"
+                        android:progress="100" />
+
+                    <TextView
+                        android:id="@+id/tvHardnessValue"
+                        android:layout_width="30dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="100"
+                        android:textColor="?attr/mainTextColor"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Palette and Picker -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="?attr/cardBackgroundColor"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <View
+                    android:id="@+id/currentColorPreview"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/badge_saved_bg"
+                    android:backgroundTint="@color/black" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvPalette"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="8dp"
+                    tools:listitem="@layout/item_color_swatch" />
+
+                <ImageButton
+                    android:id="@+id/btnColorPicker"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_brush"
+                    app:tint="?attr/mainTextColor" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

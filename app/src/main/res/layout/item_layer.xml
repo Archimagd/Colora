@@ -28,6 +28,7 @@
         android:layout_weight="1"
         android:layout_marginStart="12dp"
         android:text="Layer Name"
+        android:textColor="?attr/mainTextColor"
         android:textSize="16sp" />
 
     <ImageButton
@@ -35,6 +36,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_menu_delete"
+        android:tint="?attr/mainTextColor"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp" />
 
