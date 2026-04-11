@@ -1,6 +1,8 @@
 package alex.kaghktsyan.colora;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -49,7 +51,7 @@ import java.util.List;
 public class NewPaintingActivity extends AppCompatActivity {
 
     private DrawingView drawingView;
-    private ImageButton btnUndo, btnRedo, btnSave, btnLayers, btnBack, btnHand, btnZoom, btnReference;
+    private ImageButton btnUndo, btnRedo, btnSave, btnLayers, btnBack, btnHand, btnZoom, btnReference, btnTimelapse;
     private ImageButton toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect;
     private View shapesPanel, referencePanel;
     private ImageView imgReference;
@@ -138,6 +140,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnHand = findViewById(R.id.btnHand);
         btnZoom = findViewById(R.id.btnZoom);
         btnReference = findViewById(R.id.btnReference);
+        btnTimelapse = findViewById(R.id.btnTimelapse);
 
         toolBrush = findViewById(R.id.toolBrush);
         toolEraser = findViewById(R.id.toolEraser);
@@ -182,19 +185,16 @@ public class NewPaintingActivity extends AppCompatActivity {
             if (drawingView.isTransformMode()) {
                 selectTool(toolBrush);
                 drawingView.setEraserMode(false);
-                Toast.makeText(this, "Режим рисования", Toast.LENGTH_SHORT).show();
             } else {
                 resetTopButtons();
                 resetTools();
                 drawingView.setTransformMode(true);
                 btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
-                Toast.makeText(this, "Режим панорамирования", Toast.LENGTH_SHORT).show();
             }
         });
 
         btnZoom.setOnClickListener(v -> {
             drawingView.resetTransform();
-            Toast.makeText(this, "Вид сброшен", Toast.LENGTH_SHORT).show();
         });
 
         btnReference.setOnClickListener(v -> {
@@ -202,6 +202,17 @@ public class NewPaintingActivity extends AppCompatActivity {
                 pickReferenceLauncher.launch("image/*");
             } else {
                 referencePanel.setVisibility(View.GONE);
+            }
+        });
+
+        btnTimelapse.setOnClickListener(v -> {
+            if (drawingView.isRecordingTimelapse()) {
+                drawingView.stopTimelapse();
+                btnTimelapse.setImageTintList(ColorStateList.valueOf(getThemeColor(R.attr.mainTextColor)));
+                showTimelapseOptionsDialog();
+            } else {
+                drawingView.startTimelapse();
+                btnTimelapse.setImageTintList(ColorStateList.valueOf(Color.RED));
             }
         });
 
@@ -309,6 +320,55 @@ public class NewPaintingActivity extends AppCompatActivity {
         });
 
         drawingView.setOnTextRequestListener((x, y) -> showTextInputDialog(x, y));
+    }
+
+    private void showTimelapseOptionsDialog() {
+        if (drawingView.getFrameCount() < 2) {
+            Toast.makeText(this, "Слишком короткий процесс для видео", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Таймлапс готов");
+        builder.setMessage("Вы хотите сохранить процесс создания арта (" + drawingView.getFrameCount() + " кадров)?");
+        builder.setPositiveButton("Экспорт", (dialog, which) -> startTimelapseExport());
+        builder.setNegativeButton("Отмена", null);
+        builder.show();
+    }
+
+    private void startTimelapseExport() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("Экспорт видео");
+        progressDialog.setMessage("Пожалуйста, подождите...");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.setCancelable(false);
+        progressDialog.setMax(100);
+        progressDialog.show();
+
+        TimelapseExporter.export(this, drawingView.getTimelapseDir(), new TimelapseExporter.ExportListener() {
+            @Override
+            public void onProgress(int progress) {
+                progressDialog.setProgress(progress);
+            }
+
+            @Override
+            public void onComplete(Uri uri) {
+                progressDialog.dismiss();
+                Toast.makeText(NewPaintingActivity.this, "Видео сохранено в галерею!", Toast.LENGTH_LONG).show();
+                
+                // Предложить поделиться видео
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("video/mp4");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                startActivity(Intent.createChooser(shareIntent, "Поделиться таймлапсом"));
+            }
+
+            @Override
+            public void onError(String error) {
+                progressDialog.dismiss();
+                Toast.makeText(NewPaintingActivity.this, "Ошибка: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showSaveDialog() {
@@ -421,6 +481,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         int iconColor = getThemeColor(R.attr.mainTextColor);
         btnHand.setImageTintList(ColorStateList.valueOf(iconColor));
         btnZoom.setImageTintList(ColorStateList.valueOf(iconColor));
+        btnTimelapse.setImageTintList(ColorStateList.valueOf(drawingView.isRecordingTimelapse() ? Color.RED : iconColor));
     }
 
     private void resetTools() {

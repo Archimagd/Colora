@@ -18,6 +18,9 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -59,7 +62,7 @@ public class DrawingView extends View {
     private Paint paint;
     private Paint textPaint;
     private Paint selectionPaint;
-    private Path currentPath;
+    private Path currentPath = new Path();
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = -1;
 
@@ -91,6 +94,11 @@ public class DrawingView extends View {
     private List<Bitmap[]> redoStack = new ArrayList<>();
     private static final int MAX_UNDO_STEPS = 10;
 
+    // Timelapse members
+    private boolean isRecordingTimelapse = false;
+    private File timelapseDir;
+    private int frameCounter = 0;
+
     // Transformation members
     private Matrix drawMatrix = new Matrix();
     private Matrix inverseMatrix = new Matrix();
@@ -111,7 +119,6 @@ public class DrawingView extends View {
     private void init(Context context) {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
-        currentPath = new Path();
         paint = new Paint();
         paint.setColor(currentColor);
         paint.setAlpha(currentAlpha);
@@ -134,6 +141,8 @@ public class DrawingView extends View {
         selectionPaint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0));
 
         setupGestures(context);
+        
+        timelapseDir = new File(context.getCacheDir(), "timelapse_frames");
     }
 
     private void setupGestures(Context context) {
@@ -152,6 +161,51 @@ public class DrawingView extends View {
             drawMatrix.postRotate(angle, getWidth() / 2f, getHeight() / 2f);
             invalidate();
         });
+    }
+
+    public void startTimelapse() {
+        if (isRecordingTimelapse) return;
+        isRecordingTimelapse = true;
+        frameCounter = 0;
+        if (timelapseDir.exists()) {
+            File[] files = timelapseDir.listFiles();
+            if (files != null) {
+                for (File f : files) f.delete();
+            }
+        } else {
+            timelapseDir.mkdirs();
+        }
+        captureTimelapseFrame();
+    }
+
+    public void stopTimelapse() {
+        isRecordingTimelapse = false;
+    }
+
+    public boolean isRecordingTimelapse() {
+        return isRecordingTimelapse;
+    }
+
+    public File getTimelapseDir() {
+        return timelapseDir;
+    }
+
+    public int getFrameCount() {
+        return frameCounter;
+    }
+
+    private void captureTimelapseFrame() {
+        if (!isRecordingTimelapse) return;
+        
+        Bitmap frame = getBitmap();
+        File frameFile = new File(timelapseDir, String.format("frame_%05d.jpg", frameCounter++));
+        try (FileOutputStream out = new FileOutputStream(frameFile)) {
+            frame.compress(Bitmap.CompressFormat.JPEG, 80, out);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            frame.recycle();
+        }
     }
 
     public void setTransformMode(boolean enabled) {
@@ -202,6 +256,7 @@ public class DrawingView extends View {
             layers.add(layer);
             currentLayerIndex = layers.size() - 1;
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -212,6 +267,7 @@ public class DrawingView extends View {
             layers.remove(index);
             currentLayerIndex = Math.min(currentLayerIndex, layers.size() - 1);
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -307,6 +363,7 @@ public class DrawingView extends View {
                     saveStateToUndo();
                     int targetColor = layer.bitmap.getPixel((int) Math.max(0, Math.min(x, layer.bitmap.getWidth()-1)), (int) Math.max(0, Math.min(y, layer.bitmap.getHeight()-1)));
                     performFloodFill((int) x, (int) y, targetColor, currentColor);
+                    captureTimelapseFrame();
                     return true;
                 }
                 if (isTextMode) {
@@ -408,6 +465,7 @@ public class DrawingView extends View {
                     currentPath.reset();
                 }
                 invalidate();
+                captureTimelapseFrame();
                 break;
         }
         return true;
@@ -418,7 +476,6 @@ public class DrawingView extends View {
         int count = event.getPointerCount();
         int action = event.getActionMasked();
 
-        // Игнорируем палец, который только что подняли, чтобы не было прыжка
         boolean isPointerUp = action == MotionEvent.ACTION_POINTER_UP;
         int skipIndex = isPointerUp ? event.getActionIndex() : -1;
 
@@ -432,7 +489,6 @@ public class DrawingView extends View {
 
         if (effectiveCount == 0) return;
 
-        // Находим текущий "центр тяжести" касаний
         float focusX = sumX / effectiveCount;
         float focusY = sumY / effectiveCount;
 
@@ -440,7 +496,6 @@ public class DrawingView extends View {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_POINTER_UP:
-                // При любом изменении количества пальцев просто обновляем точку отсчета
                 lastTouchX = focusX;
                 lastTouchY = focusY;
                 break;
@@ -449,7 +504,6 @@ public class DrawingView extends View {
                 float dx = focusX - lastTouchX;
                 float dy = focusY - lastTouchY;
 
-                // Двигаем холст
                 drawMatrix.postTranslate(dx, dy);
 
                 lastTouchX = focusX;
@@ -492,6 +546,7 @@ public class DrawingView extends View {
             selectedBitmap = null;
             isMoveMode = false;
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -504,6 +559,7 @@ public class DrawingView extends View {
             textPaint.setTextSize(currentStrokeWidth * 5);
             layer.canvas.drawText(text, x, y, textPaint);
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -608,6 +664,7 @@ public class DrawingView extends View {
             }
             currentLayerIndex = Math.min(currentLayerIndex, layers.size() - 1);
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -635,6 +692,7 @@ public class DrawingView extends View {
             }
             currentLayerIndex = Math.min(currentLayerIndex, layers.size() - 1);
             invalidate();
+            captureTimelapseFrame();
         }
     }
 
@@ -644,6 +702,7 @@ public class DrawingView extends View {
             layer.bitmap.eraseColor(Color.TRANSPARENT);
         }
         invalidate();
+        captureTimelapseFrame();
     }
 
     public void setColor(int color) {
@@ -703,6 +762,7 @@ public class DrawingView extends View {
     }
 
     public Bitmap getBitmap() {
+        if (getWidth() <= 0 || getHeight() <= 0) return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         Bitmap result = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(result);
         canvas.drawColor(backgroundColor);
@@ -725,6 +785,7 @@ public class DrawingView extends View {
         layers.add(layer);
         currentLayerIndex = 0;
         invalidate();
+        captureTimelapseFrame();
     }
 
     public void setEraserMode(boolean enabled) {
@@ -798,6 +859,7 @@ public class DrawingView extends View {
     public void setBackgroundColor(int color) {
         backgroundColor = color;
         invalidate();
+        captureTimelapseFrame();
     }
 
     public List<Layer> getLayers() {
