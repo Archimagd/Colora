@@ -1,12 +1,16 @@
 package alex.kaghktsyan.colora;
 
+import android.content.ContentValues;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.TypedValue;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -21,6 +25,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -34,6 +40,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,9 +49,11 @@ import java.util.List;
 public class NewPaintingActivity extends AppCompatActivity {
 
     private DrawingView drawingView;
-    private ImageButton btnUndo, btnRedo, btnSave, btnLayers, btnBack, btnHand, btnZoom;
+    private ImageButton btnUndo, btnRedo, btnSave, btnLayers, btnBack, btnHand, btnZoom, btnReference;
     private ImageButton toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect;
-    private View shapesPanel;
+    private View shapesPanel, referencePanel;
+    private ImageView imgReference;
+    private ImageButton btnCloseReference;
     private ImageButton shapeLine, shapeRect, shapeCircle, shapeTriangle;
     private SeekBar sbSize, sbOpacity, sbHardness;
     private TextView tvSizeValue, tvOpacityValue, tvHardnessValue;
@@ -51,6 +61,17 @@ public class NewPaintingActivity extends AppCompatActivity {
     private RecyclerView rvPalette;
     private ImageButton btnColorPicker;
     private ColorSwatchAdapter paletteAdapter;
+
+    private float dX, dY; // For reference window dragging
+
+    private final ActivityResultLauncher<String> pickReferenceLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    loadReferenceImage(uri);
+                }
+            }
+    );
 
     private List<Integer> paletteColors = new ArrayList<>(Arrays.asList(
             Color.BLACK, Color.DKGRAY, Color.GRAY, Color.LTGRAY, Color.WHITE,
@@ -116,6 +137,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnSave = findViewById(R.id.btnSave);
         btnHand = findViewById(R.id.btnHand);
         btnZoom = findViewById(R.id.btnZoom);
+        btnReference = findViewById(R.id.btnReference);
 
         toolBrush = findViewById(R.id.toolBrush);
         toolEraser = findViewById(R.id.toolEraser);
@@ -142,6 +164,10 @@ public class NewPaintingActivity extends AppCompatActivity {
         rvPalette = findViewById(R.id.rvPalette);
         btnColorPicker = findViewById(R.id.btnColorPicker);
         
+        referencePanel = findViewById(R.id.referencePanel);
+        imgReference = findViewById(R.id.imgReference);
+        btnCloseReference = findViewById(R.id.btnCloseReference);
+        
         drawingView.setBackgroundColor(Color.WHITE);
     }
 
@@ -149,23 +175,59 @@ public class NewPaintingActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         btnUndo.setOnClickListener(v -> drawingView.undo());
         btnRedo.setOnClickListener(v -> drawingView.redo());
-        btnSave.setOnClickListener(v -> {
-            Bitmap bitmap = drawingView.getBitmap();
-            Toast.makeText(this, "Функция сохранения (заглушка)", Toast.LENGTH_SHORT).show();
-        });
+        btnSave.setOnClickListener(v -> showSaveDialog());
         btnLayers.setOnClickListener(v -> showLayersBottomSheet());
 
         btnHand.setOnClickListener(v -> {
-            resetTopButtons();
-            resetTools();
-            drawingView.setTransformMode(true);
-            btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
-            Toast.makeText(this, "Режим панорамирования", Toast.LENGTH_SHORT).show();
+            if (drawingView.isTransformMode()) {
+                selectTool(toolBrush);
+                drawingView.setEraserMode(false);
+                Toast.makeText(this, "Режим рисования", Toast.LENGTH_SHORT).show();
+            } else {
+                resetTopButtons();
+                resetTools();
+                drawingView.setTransformMode(true);
+                btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
+                Toast.makeText(this, "Режим панорамирования", Toast.LENGTH_SHORT).show();
+            }
         });
 
         btnZoom.setOnClickListener(v -> {
             drawingView.resetTransform();
             Toast.makeText(this, "Вид сброшен", Toast.LENGTH_SHORT).show();
+        });
+
+        btnReference.setOnClickListener(v -> {
+            if (referencePanel.getVisibility() == View.GONE) {
+                pickReferenceLauncher.launch("image/*");
+            } else {
+                referencePanel.setVisibility(View.GONE);
+            }
+        });
+
+        btnCloseReference.setOnClickListener(v -> referencePanel.setVisibility(View.GONE));
+
+        // Make reference window draggable
+        referencePanel.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent event) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        dX = view.getX() - event.getRawX();
+                        dY = view.getY() - event.getRawY();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        view.animate()
+                                .x(event.getRawX() + dX)
+                                .y(event.getRawY() + dY)
+                                .setDuration(0)
+                                .start();
+                        break;
+                    default:
+                        return false;
+                }
+                return true;
+            }
         });
 
         // Tool listeners
@@ -247,6 +309,67 @@ public class NewPaintingActivity extends AppCompatActivity {
         });
 
         drawingView.setOnTextRequestListener((x, y) -> showTextInputDialog(x, y));
+    }
+
+    private void showSaveDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Сохранить рисунок");
+
+        final EditText input = new EditText(this);
+        input.setHint("Введите название");
+        builder.setView(input);
+
+        builder.setPositiveButton("Сохранить", (dialog, which) -> {
+            String fileName = input.getText().toString().trim();
+            if (fileName.isEmpty()) {
+                fileName = "Colora_" + System.currentTimeMillis();
+            }
+            saveImageToGallery(fileName);
+        });
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private void saveImageToGallery(String fileName) {
+        Bitmap bitmap = drawingView.getBitmap();
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName + ".png");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Colora");
+            values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        }
+
+        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        if (uri != null) {
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.clear();
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0);
+                    getContentResolver().update(uri, values, null, null);
+                }
+                
+                Toast.makeText(this, "Рисунок '" + fileName + "' сохранен!", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void loadReferenceImage(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            imgReference.setImageBitmap(bitmap);
+            referencePanel.setVisibility(View.VISIBLE);
+        } catch (Exception e) {
+            Toast.makeText(this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void selectShape(DrawingView.ShapeType type, ImageButton button) {

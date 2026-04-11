@@ -159,6 +159,10 @@ public class DrawingView extends View {
         isTransformMode = enabled;
     }
 
+    public boolean isTransformMode() {
+        return isTransformMode;
+    }
+
     public void resetTransform() {
         drawMatrix.reset();
         invalidate();
@@ -410,20 +414,46 @@ public class DrawingView extends View {
     }
 
     private void handlePanning(MotionEvent event) {
-        switch (event.getActionMasked()) {
+        float sumX = 0, sumY = 0;
+        int count = event.getPointerCount();
+        int action = event.getActionMasked();
+
+        // Игнорируем палец, который только что подняли, чтобы не было прыжка
+        boolean isPointerUp = action == MotionEvent.ACTION_POINTER_UP;
+        int skipIndex = isPointerUp ? event.getActionIndex() : -1;
+
+        int effectiveCount = 0;
+        for (int i = 0; i < count; i++) {
+            if (i == skipIndex) continue;
+            sumX += event.getX(i);
+            sumY += event.getY(i);
+            effectiveCount++;
+        }
+
+        if (effectiveCount == 0) return;
+
+        // Находим текущий "центр тяжести" касаний
+        float focusX = sumX / effectiveCount;
+        float focusY = sumY / effectiveCount;
+
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
-                lastTouchX = event.getX();
-                lastTouchY = event.getY();
+            case MotionEvent.ACTION_POINTER_UP:
+                // При любом изменении количества пальцев просто обновляем точку отсчета
+                lastTouchX = focusX;
+                lastTouchY = focusY;
                 break;
+
             case MotionEvent.ACTION_MOVE:
-                float x = event.getX();
-                float y = event.getY();
-                float dx = x - lastTouchX;
-                float dy = y - lastTouchY;
+                float dx = focusX - lastTouchX;
+                float dy = focusY - lastTouchY;
+
+                // Двигаем холст
                 drawMatrix.postTranslate(dx, dy);
-                lastTouchX = x;
-                lastTouchY = y;
+
+                lastTouchX = focusX;
+                lastTouchY = focusY;
                 invalidate();
                 break;
         }

@@ -19,86 +19,100 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="8dp">
+            android:scrollbars="none">
 
-            <ImageButton
-                android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_back"
-                app:tint="?attr/mainTextColor" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_back"
+                    app:tint="?attr/mainTextColor" />
 
-            <ImageButton
-                android:id="@+id/btnHand"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_hand"
-                app:tint="?attr/mainTextColor" />
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent" />
 
-            <ImageButton
-                android:id="@+id/btnZoom"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_zoom_in"
-                app:tint="?attr/mainTextColor" />
+                <ImageButton
+                    android:id="@+id/btnHand"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_hand"
+                    app:tint="?attr/mainTextColor" />
 
-            <View
-                android:layout_width="12dp"
-                android:layout_height="match_parent" />
+                <ImageButton
+                    android:id="@+id/btnZoom"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/reset_svgrepo_com"
+                    app:tint="?attr/mainTextColor" />
 
-            <ImageButton
-                android:id="@+id/btnUndo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_undo"
-                app:tint="?attr/mainTextColor" />
+                <ImageButton
+                    android:id="@+id/btnReference"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_reference"
+                    app:tint="?attr/mainTextColor" />
 
-            <ImageButton
-                android:id="@+id/btnRedo"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_redo"
-                app:tint="?attr/mainTextColor" />
+                <View
+                    android:layout_width="12dp"
+                    android:layout_height="match_parent" />
 
-            <View
-                android:layout_width="12dp"
-                android:layout_height="match_parent" />
+                <ImageButton
+                    android:id="@+id/btnUndo"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_undo"
+                    app:tint="?attr/mainTextColor" />
 
-            <ImageButton
-                android:id="@+id/btnLayers"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_layers"
-                app:tint="?attr/mainTextColor" />
+                <ImageButton
+                    android:id="@+id/btnRedo"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_redo"
+                    app:tint="?attr/mainTextColor" />
 
-            <ImageButton
-                android:id="@+id/btnSave"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_save"
-                app:tint="@color/purple_main" />
+                <View
+                    android:layout_width="12dp"
+                    android:layout_height="match_parent" />
 
-        </LinearLayout>
+                <ImageButton
+                    android:id="@+id/btnLayers"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_layers"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
+                    android:id="@+id/btnSave"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_save"
+                    app:tint="@color/purple_main" />
+
+            </LinearLayout>
+        </HorizontalScrollView>
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Canvas Area -->
@@ -415,7 +429,7 @@
                     android:clipToPadding="false"
                     android:orientation="horizontal"
                     android:paddingHorizontal="8dp"
-                    tools:listitem="@layout/item_color_swatch" />
+                    tools:listitem="@layout/layout_item_color_swatch" />
 
                 <ImageButton
                     android:id="@+id/btnColorPicker"
@@ -427,5 +441,42 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
+
+    <!-- Reference Window -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/referencePanel"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="20dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/imgReference"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
+
+            <ImageButton
+                android:id="@+id/btnCloseReference"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="4dp"
+                android:background="@drawable/badge_saved_bg"
+                android:backgroundTint="#80000000"
+                android:src="@drawable/ic_back"
+                app:tint="@color/white" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
