@@ -31,6 +31,10 @@ public class DrawingView extends View {
         NONE, LINE, RECT, CIRCLE, TRIANGLE
     }
 
+    public enum SymmetryType {
+        NONE, VERTICAL, HORIZONTAL, RADIAL
+    }
+
     public static class Layer {
         public Bitmap bitmap;
         public Canvas canvas;
@@ -76,6 +80,8 @@ public class DrawingView extends View {
     private boolean isMoveMode = false;
     private boolean isTransformMode = false;
     private ShapeType currentShape = ShapeType.NONE;
+    private SymmetryType symmetryType = SymmetryType.NONE;
+    private int radialSlices = 8;
 
     private RectF selectionRect = null;
     private Bitmap selectedBitmap = null;
@@ -288,9 +294,9 @@ public class DrawingView extends View {
 
                 if (i == currentLayerIndex) {
                     if (currentShape != ShapeType.NONE) {
-                        drawShape(canvas, paint, startX, startY, lastX, lastY, currentShape);
+                        drawSymmetricShape(canvas, paint, startX, startY, lastX, lastY, currentShape);
                     } else if (!currentPath.isEmpty() && !isEraserMode && !isFillMode && !isPickerMode && !isTextMode && !isSelectMode && !isMoveMode) {
-                        canvas.drawPath(currentPath, paint);
+                        drawSymmetricPath(canvas, currentPath, paint);
                     }
                 }
             }
@@ -307,6 +313,60 @@ public class DrawingView extends View {
                            selectedBitmapY + selectedBitmap.getHeight(), selectionPaint);
         }
 
+        canvas.restore();
+    }
+
+    private void drawSymmetricPath(Canvas canvas, Path path, Paint p) {
+        if (symmetryType == SymmetryType.NONE) {
+            canvas.drawPath(path, p);
+            return;
+        }
+
+        float centerX = getWidth() / 2f;
+        float centerY = getHeight() / 2f;
+
+        canvas.save();
+        canvas.drawPath(path, p);
+
+        if (symmetryType == SymmetryType.VERTICAL) {
+            canvas.scale(-1, 1, centerX, centerY);
+            canvas.drawPath(path, p);
+        } else if (symmetryType == SymmetryType.HORIZONTAL) {
+            canvas.scale(1, -1, centerX, centerY);
+            canvas.drawPath(path, p);
+        } else if (symmetryType == SymmetryType.RADIAL) {
+            for (int i = 1; i < radialSlices; i++) {
+                canvas.rotate(360f / radialSlices, centerX, centerY);
+                canvas.drawPath(path, p);
+            }
+        }
+        canvas.restore();
+    }
+
+    private void drawSymmetricShape(Canvas canvas, Paint p, float x1, float y1, float x2, float y2, ShapeType shape) {
+        if (symmetryType == SymmetryType.NONE) {
+            drawShape(canvas, p, x1, y1, x2, y2, shape);
+            return;
+        }
+
+        float centerX = getWidth() / 2f;
+        float centerY = getHeight() / 2f;
+
+        canvas.save();
+        drawShape(canvas, p, x1, y1, x2, y2, shape);
+
+        if (symmetryType == SymmetryType.VERTICAL) {
+            canvas.scale(-1, 1, centerX, centerY);
+            drawShape(canvas, p, x1, y1, x2, y2, shape);
+        } else if (symmetryType == SymmetryType.HORIZONTAL) {
+            canvas.scale(1, -1, centerX, centerY);
+            drawShape(canvas, p, x1, y1, x2, y2, shape);
+        } else if (symmetryType == SymmetryType.RADIAL) {
+            for (int i = 1; i < radialSlices; i++) {
+                canvas.rotate(360f / radialSlices, centerX, centerY);
+                drawShape(canvas, p, x1, y1, x2, y2, shape);
+            }
+        }
         canvas.restore();
     }
 
@@ -430,7 +490,7 @@ public class DrawingView extends View {
                     currentPath.quadTo(lastX, lastY, midX, midY);
                     
                     if (isEraserMode) {
-                        layer.canvas.drawPath(currentPath, paint);
+                        drawSymmetricPath(layer.canvas, currentPath, paint);
                         currentPath.reset();
                         currentPath.moveTo(midX, midY);
                     }
@@ -459,9 +519,9 @@ public class DrawingView extends View {
                 if (isMoveMode) return true;
 
                 if (currentShape != ShapeType.NONE) {
-                    drawShape(layer.canvas, paint, startX, startY, x, y, currentShape);
+                    drawSymmetricShape(layer.canvas, paint, startX, startY, x, y, currentShape);
                 } else {
-                    layer.canvas.drawPath(currentPath, paint);
+                    drawSymmetricPath(layer.canvas, currentPath, paint);
                     currentPath.reset();
                 }
                 invalidate();
@@ -832,6 +892,24 @@ public class DrawingView extends View {
     public void setShapeType(ShapeType type) {
         resetModes();
         this.currentShape = type;
+    }
+
+    public void setSymmetryType(SymmetryType type) {
+        this.symmetryType = type;
+        invalidate();
+    }
+
+    public SymmetryType getSymmetryType() {
+        return symmetryType;
+    }
+
+    public void setRadialSlices(int slices) {
+        this.radialSlices = Math.max(2, slices);
+        invalidate();
+    }
+
+    public int getRadialSlices() {
+        return radialSlices;
     }
 
     private void resetModes() {

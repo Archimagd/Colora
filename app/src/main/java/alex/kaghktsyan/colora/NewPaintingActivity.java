@@ -52,11 +52,12 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private DrawingView drawingView;
     private ImageButton btnUndo, btnRedo, btnSave, btnLayers, btnBack, btnHand, btnZoom, btnReference, btnTimelapse;
-    private ImageButton toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect;
-    private View shapesPanel, referencePanel;
+    private ImageButton toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect, toolSymmetry;
+    private View shapesPanel, symmetryPanel, referencePanel;
     private ImageView imgReference;
     private ImageButton btnCloseReference;
     private ImageButton shapeLine, shapeRect, shapeCircle, shapeTriangle;
+    private ImageButton symNone, symVertical, symHorizontal, symRadial;
     private SeekBar sbSize, sbOpacity, sbHardness;
     private TextView tvSizeValue, tvOpacityValue, tvHardnessValue;
     private View currentColorPreview;
@@ -149,12 +150,19 @@ public class NewPaintingActivity extends AppCompatActivity {
         toolShapes = findViewById(R.id.toolShapes);
         toolText = findViewById(R.id.toolText);
         toolSelect = findViewById(R.id.toolSelect);
+        toolSymmetry = findViewById(R.id.toolSymmetry);
 
         shapesPanel = findViewById(R.id.shapesPanel);
         shapeLine = findViewById(R.id.shapeLine);
         shapeRect = findViewById(R.id.shapeRect);
         shapeCircle = findViewById(R.id.shapeCircle);
         shapeTriangle = findViewById(R.id.shapeTriangle);
+
+        symmetryPanel = findViewById(R.id.symmetryPanel);
+        symNone = findViewById(R.id.symNone);
+        symVertical = findViewById(R.id.symVertical);
+        symHorizontal = findViewById(R.id.symHorizontal);
+        symRadial = findViewById(R.id.symRadial);
 
         sbSize = findViewById(R.id.sbSize);
         sbOpacity = findViewById(R.id.sbOpacity);
@@ -274,12 +282,31 @@ public class NewPaintingActivity extends AppCompatActivity {
             selectTool(toolSelect);
             drawingView.setSelectMode(true);
         });
+        toolSymmetry.setOnClickListener(v -> {
+             if (symmetryPanel.getVisibility() == View.VISIBLE) {
+                symmetryPanel.setVisibility(View.GONE);
+            } else {
+                selectTool(toolSymmetry);
+                symmetryPanel.setVisibility(View.VISIBLE);
+            }
+        });
 
         // Shape buttons listeners
         shapeLine.setOnClickListener(v -> selectShape(DrawingView.ShapeType.LINE, shapeLine));
         shapeRect.setOnClickListener(v -> selectShape(DrawingView.ShapeType.RECT, shapeRect));
         shapeCircle.setOnClickListener(v -> selectShape(DrawingView.ShapeType.CIRCLE, shapeCircle));
         shapeTriangle.setOnClickListener(v -> selectShape(DrawingView.ShapeType.TRIANGLE, shapeTriangle));
+
+        // Symmetry buttons listeners
+        symNone.setOnClickListener(v -> {
+            selectSymmetry(DrawingView.SymmetryType.NONE, symNone);
+            symmetryPanel.setVisibility(View.GONE);
+            selectTool(toolBrush);
+            drawingView.setEraserMode(false);
+        });
+        symVertical.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.VERTICAL, symVertical));
+        symHorizontal.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.HORIZONTAL, symHorizontal));
+        symRadial.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.RADIAL, symRadial));
 
         // SeekBar listeners
         sbSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -448,6 +475,22 @@ public class NewPaintingActivity extends AppCompatActivity {
         }
     }
 
+    private void selectSymmetry(DrawingView.SymmetryType type, ImageButton button) {
+        drawingView.setSymmetryType(type);
+        resetSymmetryButtons();
+        button.setSelected(true);
+        button.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
+    }
+
+    private void resetSymmetryButtons() {
+        int iconColor = getThemeColor(R.attr.mainTextColor);
+        ImageButton[] symButtons = {symNone, symVertical, symHorizontal, symRadial};
+        for (ImageButton b : symButtons) {
+            b.setSelected(false);
+            b.setImageTintList(ColorStateList.valueOf(iconColor));
+        }
+    }
+
     private void updateCurrentColorUI(int color) {
         drawingView.setColor(color);
         currentColorPreview.setBackgroundTintList(ColorStateList.valueOf(color));
@@ -486,12 +529,13 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private void resetTools() {
         int iconColor = getThemeColor(R.attr.mainTextColor);
-        ImageButton[] tools = {toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect};
+        ImageButton[] tools = {toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect, toolSymmetry};
         for (ImageButton t : tools) {
             t.setSelected(false);
             t.setImageTintList(ColorStateList.valueOf(iconColor));
         }
         shapesPanel.setVisibility(View.GONE);
+        symmetryPanel.setVisibility(View.GONE);
         resetShapeButtons();
     }
 

@@ -203,6 +203,15 @@
                     app:tint="?attr/mainTextColor" />
 
                 <ImageButton
+                    android:id="@+id/toolSymmetry"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/chip_selector"
+                    android:src="@drawable/ic_symmetry"
+                    app:tint="?attr/mainTextColor" />
+
+                <ImageButton
                     android:id="@+id/toolText"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
@@ -280,6 +289,103 @@
                 app:tint="?attr/mainTextColor" />
 
         </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Symmetry Panel -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/symmetryPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="@id/sideTools"
+        app:layout_constraintStart_toEndOf="@id/sideTools"
+        app:layout_constraintTop_toTopOf="@id/sideTools">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="6dp"
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/symNone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_back"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/symVertical"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_line"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/symHorizontal"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_line"
+                android:rotation="90"
+                app:tint="?attr/mainTextColor" />
+
+            <ImageButton
+                android:id="@+id/symRadial"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/chip_selector"
+                android:src="@drawable/ic_radial_symmetry"
+                app:tint="?attr/mainTextColor" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Reference Panel -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/referencePanel"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="?attr/cardBackgroundColor"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/imgReference"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerInside" />
+
+            <ImageButton
+                android:id="@+id/btnCloseReference"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="?attr/mainTextColor" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Bottom Controls -->
@@ -428,15 +534,13 @@
                     android:id="@+id/currentColorPreview"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@android:drawable/btn_default"
-                    android:backgroundTint="@color/black"
-                    android:elevation="2dp" />
+                    android:background="@drawable/photo_button_bg" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvPalette"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1" />
 
                 <ImageButton
@@ -445,49 +549,11 @@
                     android:layout_height="36dp"
                     android:layout_marginStart="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:scaleType="centerInside"
                     android:src="@drawable/ic_eyedropper"
-                    app:tint="@color/purple_main" />
+                    app:tint="?attr/mainTextColor" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
     </LinearLayout>
-
-    <!-- Floating Reference Image Container -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/referencePanel"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="?attr/cardBackgroundColor"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp">
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <ImageView
-                android:id="@+id/imgReference"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop" />
-
-            <ImageButton
-                android:id="@+id/btnCloseReference"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="top|end"
-                android:layout_margin="4dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                app:tint="@color/red" />
-        </FrameLayout>
-    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
