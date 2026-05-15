@@ -636,7 +636,26 @@ public class DrawingView extends View {
         }
     }
 
+    private boolean isSimilar(int c1, int c2, int tolerance) {
+        if (c1 == c2) return true;
+        int a1 = (c1 >> 24) & 0xff;
+        int r1 = (c1 >> 16) & 0xff;
+        int g1 = (c1 >> 8) & 0xff;
+        int b1 = c1 & 0xff;
+
+        int a2 = (c2 >> 24) & 0xff;
+        int r2 = (c2 >> 16) & 0xff;
+        int g2 = (c2 >> 8) & 0xff;
+        int b2 = c2 & 0xff;
+
+        return Math.abs(a1 - a2) <= tolerance &&
+                Math.abs(r1 - r2) <= tolerance &&
+                Math.abs(g1 - g2) <= tolerance &&
+                Math.abs(b1 - b2) <= tolerance;
+    }
+
     private void performFloodFill(int x, int y, int targetColor, int replacementColor) {
+        replacementColor = (currentAlpha << 24) | (replacementColor & 0xFFFFFF);
         if (targetColor == replacementColor) return;
 
         Bitmap bitmap = layers.get(currentLayerIndex).bitmap;
@@ -648,6 +667,8 @@ public class DrawingView extends View {
         int[] pixels = new int[width * height];
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
 
+        int tolerance = 250;
+        boolean[] visited = new boolean[width * height];
         Stack<Point> stack = new Stack<>();
         stack.push(new Point(x, y));
 
@@ -656,29 +677,37 @@ public class DrawingView extends View {
             int px = p.x;
             int py = p.y;
 
-            if (pixels[py * width + px] != targetColor) continue;
+            if (visited[py * width + px] || !isSimilar(pixels[py * width + px], targetColor, tolerance)) continue;
 
             int left = px;
-            while (left > 0 && pixels[py * width + left - 1] == targetColor) {
+            while (left > 0 && !visited[py * width + left - 1] && isSimilar(pixels[py * width + left - 1], targetColor, tolerance)) {
                 left--;
             }
 
             int right = px;
-            while (right < width - 1 && pixels[py * width + right + 1] == targetColor) {
+            while (right < width - 1 && !visited[py * width + right + 1] && isSimilar(pixels[py * width + right + 1], targetColor, tolerance)) {
                 right++;
             }
 
             for (int i = left; i <= right; i++) {
-                pixels[py * width + i] = replacementColor;
+                int currIdx = py * width + i;
+                pixels[currIdx] = replacementColor;
+                visited[currIdx] = true;
 
-                if (py > 0 && pixels[(py - 1) * width + i] == targetColor) {
-                    if (i == left || pixels[(py - 1) * width + i - 1] != targetColor) {
-                        stack.push(new Point(i, py - 1));
+                if (py > 0) {
+                    int upIdx = (py - 1) * width + i;
+                    if (!visited[upIdx] && isSimilar(pixels[upIdx], targetColor, tolerance)) {
+                        if (i == left || visited[upIdx - 1] || !isSimilar(pixels[upIdx - 1], targetColor, tolerance)) {
+                            stack.push(new Point(i, py - 1));
+                        }
                     }
                 }
-                if (py < height - 1 && pixels[(py + 1) * width + i] == targetColor) {
-                    if (i == left || pixels[(py + 1) * width + i - 1] != targetColor) {
-                        stack.push(new Point(i, py + 1));
+                if (py < height - 1) {
+                    int downIdx = (py + 1) * width + i;
+                    if (!visited[downIdx] && isSimilar(pixels[downIdx], targetColor, tolerance)) {
+                        if (i == left || visited[downIdx - 1] || !isSimilar(pixels[downIdx - 1], targetColor, tolerance)) {
+                            stack.push(new Point(i, py + 1));
+                        }
                     }
                 }
             }
