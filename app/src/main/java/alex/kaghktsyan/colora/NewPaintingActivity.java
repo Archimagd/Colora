@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -40,6 +41,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 import java.io.InputStream;
@@ -105,13 +107,14 @@ public class NewPaintingActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Load image if passed
-        String imagePath = getIntent().getStringExtra("image_path");
-        if (imagePath != null) {
-            File imgFile = new File(imagePath);
-            if (imgFile.exists()) {
-                Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                drawingView.loadBitmap(myBitmap);
+        // Load image if passed (Cloud)
+        String cloudImageData = getIntent().getStringExtra("cloud_image_data");
+        if (cloudImageData != null) {
+            try {
+                byte[] decodedString = Base64.decode(cloudImageData, Base64.DEFAULT);
+                Bitmap cloudBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                drawingView.loadBitmap(cloudBitmap);
+            } catch (Exception ignored) {
             }
         }
 
@@ -198,7 +201,6 @@ public class NewPaintingActivity extends AppCompatActivity {
                 resetTools();
                 drawingView.setTransformMode(true);
                 btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
-                // Disable symmetry when moving the canvas
                 drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             }
         });
@@ -226,7 +228,6 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         btnCloseReference.setOnClickListener(v -> referencePanel.setVisibility(View.GONE));
 
-        // Make reference window draggable
         referencePanel.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent event) {
@@ -249,7 +250,6 @@ public class NewPaintingActivity extends AppCompatActivity {
             }
         });
 
-        // Tool listeners
         toolBrush.setOnClickListener(v -> {
             selectTool(toolBrush);
             drawingView.setEraserMode(false);
@@ -292,15 +292,12 @@ public class NewPaintingActivity extends AppCompatActivity {
             }
         });
 
-        // Shape buttons listeners
         shapeLine.setOnClickListener(v -> selectShape(DrawingView.ShapeType.LINE, shapeLine));
         shapeRect.setOnClickListener(v -> selectShape(DrawingView.ShapeType.RECT, shapeRect));
         shapeCircle.setOnClickListener(v -> selectShape(DrawingView.ShapeType.CIRCLE, shapeCircle));
         shapeTriangle.setOnClickListener(v -> selectShape(DrawingView.ShapeType.TRIANGLE, shapeTriangle));
 
-        // Symmetry buttons listeners
         symNone.setOnClickListener(v -> {
-            // Exit symmetry mode: disable, close panel, and back to brush
             drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             symmetryPanel.setVisibility(View.GONE);
             selectTool(toolBrush);
@@ -310,7 +307,6 @@ public class NewPaintingActivity extends AppCompatActivity {
         symHorizontal.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.HORIZONTAL, symHorizontal));
         symRadial.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.RADIAL, symRadial));
 
-        // SeekBar listeners
         sbSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -351,16 +347,15 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private void showTimelapseOptionsDialog() {
         if (drawingView.getFrameCount() < 2) {
-            Toast.makeText(this, "Слишком короткий процесс для видео", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Таймлапс готов");
-        builder.setMessage("Вы хотите сохранить процесс создания арта (" + drawingView.getFrameCount() + " кадров)?");
-        builder.setPositiveButton("Экспорт", (dialog, which) -> startTimelapseExport());
-        builder.setNegativeButton("Отмена", null);
-        builder.show();
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Таймлапс готов")
+                .setMessage("Вы хотите сохранить процесс создания арта (" + drawingView.getFrameCount() + " кадров)?")
+                .setPositiveButton("Экспорт", (dialog, which) -> startTimelapseExport())
+                .setNegativeButton("Отмена", null)
+                .show();
     }
 
     private void startTimelapseExport() {
@@ -368,7 +363,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         progressBar.setMax(100);
         progressBar.setPadding(40, 40, 40, 40);
 
-        AlertDialog progressDialog = new AlertDialog.Builder(this)
+        AlertDialog progressDialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Экспорт видео")
                 .setMessage("Пожалуйста, подождите...")
                 .setView(progressBar)
@@ -385,7 +380,6 @@ public class NewPaintingActivity extends AppCompatActivity {
             @Override
             public void onComplete(Uri uri) {
                 progressDialog.dismiss();
-                Toast.makeText(NewPaintingActivity.this, "Видео сохранено в галерею!", Toast.LENGTH_LONG).show();
                 
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("video/mp4");
@@ -396,59 +390,40 @@ public class NewPaintingActivity extends AppCompatActivity {
             @Override
             public void onError(String error) {
                 progressDialog.dismiss();
-                Toast.makeText(NewPaintingActivity.this, "Ошибка: " + error, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void showSaveDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Сохранить рисунок");
-
         final EditText input = new EditText(this);
         input.setHint("Введите название");
-        builder.setView(input);
-
-        builder.setPositiveButton("Сохранить", (dialog, which) -> {
-            String fileName = input.getText().toString().trim();
-            if (fileName.isEmpty()) {
-                fileName = "Colora_" + System.currentTimeMillis();
-            }
-            saveImageToGallery(fileName);
-        });
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
-
-        builder.show();
-    }
-
-    private void saveImageToGallery(String fileName) {
-        Bitmap bitmap = drawingView.getBitmap();
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName + ".png");
-        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Colora");
-            values.put(MediaStore.Images.Media.IS_PENDING, 1);
-        }
+        int padding = dpToPx(20);
+        input.setPadding(padding, padding, padding, padding);
 
-        Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-
-        if (uri != null) {
-            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    values.clear();
-                    values.put(MediaStore.Images.Media.IS_PENDING, 0);
-                    getContentResolver().update(uri, values, null, null);
-                }
-                
-                Toast.makeText(this, "Рисунок '" + fileName + "' сохранен!", Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Сохранить рисунок")
+                .setView(input)
+                .setPositiveButton("Сохранить", (dialog, which) -> {
+                    String fileName = input.getText().toString().trim();
+                    if (fileName.isEmpty()) {
+                        fileName = "Colora_" + System.currentTimeMillis();
+                    }
+                    String finalFileName = fileName;
+                    
+                    // Second confirmation dialog
+                    new MaterialAlertDialogBuilder(this)
+                            .setTitle("Подтверждение сохранения")
+                            .setMessage("Вы уверены, что хотите сохранить этот рисунок?")
+                            .setPositiveButton("Да, сохранить", (dialog2, which2) -> {
+                                drawingView.saveToFirebase(finalFileName);
+                                Toast.makeText(this, "Сохранение...", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("Отмена", null)
+                            .show();
+                })
+                .setNegativeButton("Отмена", (dialog, which) -> dialog.cancel())
+                .show();
     }
 
     private void loadReferenceImage(Uri uri) {
@@ -457,8 +432,7 @@ public class NewPaintingActivity extends AppCompatActivity {
             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
             imgReference.setImageBitmap(bitmap);
             referencePanel.setVisibility(View.VISIBLE);
-        } catch (Exception e) {
-            Toast.makeText(this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+        } catch (Exception ignored) {
         }
     }
 
@@ -520,21 +494,21 @@ public class NewPaintingActivity extends AppCompatActivity {
     }
 
     private void showTextInputDialog(float x, float y) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Введите текст");
-
         final EditText input = new EditText(this);
-        builder.setView(input);
+        int padding = dpToPx(20);
+        input.setPadding(padding, padding, padding, padding);
 
-        builder.setPositiveButton("OK", (dialog, which) -> {
-            String text = input.getText().toString();
-            if (!text.isEmpty()) {
-                drawingView.drawText(text, x, y);
-            }
-        });
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
-
-        builder.show();
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Введите текст")
+                .setView(input)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    String text = input.getText().toString();
+                    if (!text.isEmpty()) {
+                        drawingView.drawText(text, x, y);
+                    }
+                })
+                .setNegativeButton("Отмена", (dialog, which) -> dialog.cancel())
+                .show();
     }
 
     private void resetTopButtons() {
@@ -563,7 +537,6 @@ public class NewPaintingActivity extends AppCompatActivity {
         selected.setSelected(true);
         selected.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
 
-        // Disable symmetry if any tool other than the symmetry tool is selected
         if (selected != toolSymmetry) {
             drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
         }
@@ -580,6 +553,10 @@ public class NewPaintingActivity extends AppCompatActivity {
         TypedValue typedValue = new TypedValue();
         getTheme().resolveAttribute(attr, typedValue, true);
         return typedValue.data;
+    }
+
+    private int dpToPx(int dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
     private void showLayersBottomSheet() {
@@ -599,8 +576,7 @@ public class NewPaintingActivity extends AppCompatActivity {
 
             dialog.setContentView(view);
             dialog.show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Ошибка слоев: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (Exception ignored) {
         }
     }
 

@@ -38,10 +38,11 @@
                 android:background="@drawable/badge_saved_bg"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
-                android:text="SAVED"
+                android:text="CLOUD"
                 android:textColor="@color/white"
                 android:textSize="10sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
         </FrameLayout>
     </androidx.cardview.widget.CardView>
 
@@ -57,7 +58,7 @@
         android:textColor="?attr/mainTextColor"
         android:textSize="14sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/btnShare"
+        app:layout_constraintEnd_toStartOf="@+id/btnDownload"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cardImage" />
 
@@ -76,10 +77,22 @@
         app:layout_constraintTop_toBottomOf="@id/txtDrawingTitle" />
 
     <ImageButton
+        android:id="@+id/btnDownload"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/stat_sys_download"
+        android:tint="?attr/secondaryTextColor"
+        app:layout_constraintBottom_toBottomOf="@id/btnLike"
+        app:layout_constraintEnd_toStartOf="@+id/btnLike"
+        app:layout_constraintTop_toTopOf="@id/btnLike" />
+
+    <ImageButton
         android:id="@+id/btnLike"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="8dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/btn_star_big_off"
         android:tint="?attr/secondaryTextColor"

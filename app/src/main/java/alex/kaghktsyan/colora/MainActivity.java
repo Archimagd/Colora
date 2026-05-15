@@ -1,27 +1,24 @@
 package alex.kaghktsyan.colora;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.View;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
-import java.io.File;
-import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int REQUEST_CODE_STORAGE = 1;
     private LinearLayout recentContainer;
 
     @Override
@@ -36,7 +33,14 @@ public class MainActivity extends AppCompatActivity {
         View btnSeeAll = findViewById(R.id.btn_see_all);
 
         btnNewCanvas.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, NewPaintingActivity.class));
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Новый рисунок")
+                    .setMessage("Вы хотите создать новый рисунок?")
+                    .setPositiveButton("Создать", (dialog, which) -> {
+                        startActivity(new Intent(MainActivity.this, NewPaintingActivity.class));
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
         });
 
         View.OnClickListener openGallery = v -> {
@@ -59,66 +63,40 @@ public class MainActivity extends AppCompatActivity {
             return false;
         });
 
-        if (checkPermission()) {
-            loadRecentDrawings();
-        } else {
-            requestPermission();
-        }
-    }
-
-    private boolean checkPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
-        } else {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        }
-    }
-
-    private void requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_CODE_STORAGE);
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_STORAGE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadRecentDrawings();
-            }
-        }
+        loadRecentDrawings();
     }
 
     private void loadRecentDrawings() {
-        new Thread(() -> {
-            File directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Colora");
-            
-            if (!directory.exists()) {
-                return;
-            }
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("paintings")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(10)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (isFinishing() || isDestroyed()) return;
 
-            File[] files = directory.listFiles(file -> file.isFile() && (file.getName().endsWith(".png") || file.getName().endsWith(".jpg")));
-            
-            if (files != null && files.length > 0) {
-                Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
-                
-                final File[] finalFiles = files;
-                runOnUiThread(() -> {
-                    recentContainer.removeAllViews();
-                    int limit = Math.min(finalFiles.length, 10);
-                    for (int i = 0; i < limit; i++) {
-                        File file = finalFiles[i];
-                        DrawingItemFragment fragment = DrawingItemFragment.newInstance(file.getAbsolutePath(), true);
-                        getSupportFragmentManager().beginTransaction()
-                                .add(recentContainer.getId(), fragment)
-                                .commitAllowingStateLoss();
+                    FragmentTransaction removeTransaction = getSupportFragmentManager().beginTransaction();
+                    List<Fragment> fragments = getSupportFragmentManager().getFragments();
+                    for (Fragment f : fragments) {
+                        if (f instanceof DrawingItemFragment) {
+                            removeTransaction.remove(f);
+                        }
                     }
+                    removeTransaction.commitNowAllowingStateLoss();
+                    
+                    recentContainer.removeAllViews();
+                    
+                    FragmentTransaction addTransaction = getSupportFragmentManager().beginTransaction();
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        String title = doc.getString("title");
+                        String data = doc.getString("image_data");
+                        if (title != null && data != null) {
+                            DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(title, data, true);
+                            addTransaction.add(recentContainer.getId(), fragment);
+                        }
+                    }
+                    addTransaction.commitAllowingStateLoss();
                 });
-            }
-        }).start();
     }
 
     @Override
@@ -126,8 +104,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         BottomNavigationView navView = findViewById(R.id.nav_view);
         navView.setSelectedItemId(R.id.navigation_home);
-        if (checkPermission()) {
-            loadRecentDrawings();
-        }
+        loadRecentDrawings();
     }
 }

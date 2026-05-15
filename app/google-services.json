@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "466996477977",
+    "project_id": "colora-5697a",
+    "storage_bucket": "colora-5697a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466996477977:android:d636b9cf0d51de2e3bea88",
+        "android_client_info": {
+          "package_name": "alex.kaghktsyan.colora"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBt3__WRfofmH-K-hu1pfIreoOAEBYgBJE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

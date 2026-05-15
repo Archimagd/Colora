@@ -1,42 +1,50 @@
 package alex.kaghktsyan.colora;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
-import java.io.File;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 public class GalleryActivity extends AppCompatActivity {
 
-    private static final int REQUEST_CODE_STORAGE = 1;
     private LinearLayout galleryContainer;
     private TextView txtCount;
     private EditText editSearch;
-    private List<File> allFiles = new ArrayList<>();
+    private List<CloudDrawing> cloudDrawings = new ArrayList<>();
     private FavoritesManager favoritesManager;
     
     private CheckBox chipAll, chipRecent, chipFavorites;
     private String currentSearchQuery = "";
+
+    private static class CloudDrawing {
+        String title;
+        String data;
+        long timestamp;
+
+        CloudDrawing(String title, String data, long timestamp) {
+            this.title = title;
+            this.data = data;
+            this.timestamp = timestamp;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +63,14 @@ public class GalleryActivity extends AppCompatActivity {
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnAddNew).setOnClickListener(v -> {
-            startActivity(new Intent(this, NewPaintingActivity.class));
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Новый рисунок")
+                    .setMessage("Вы хотите создать новый рисунок?")
+                    .setPositiveButton("Создать", (dialog, which) -> {
+                        startActivity(new Intent(this, NewPaintingActivity.class));
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
         });
 
         setupChips();
@@ -72,11 +87,7 @@ public class GalleryActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
 
-        if (checkPermission()) {
-            loadDrawings();
-        } else {
-            requestPermission();
-        }
+        loadCloudDrawings();
     }
 
     private void setupChips() {
@@ -86,7 +97,7 @@ public class GalleryActivity extends AppCompatActivity {
                 chipFavorites.setChecked(false);
                 applyFilters();
             } else if (!chipRecent.isChecked() && !chipFavorites.isChecked()) {
-                chipAll.setChecked(true); // Keep at least one checked
+                chipAll.setChecked(true);
             }
         });
 
@@ -111,90 +122,62 @@ public class GalleryActivity extends AppCompatActivity {
         });
     }
 
-    private boolean checkPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
-        } else {
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        }
-    }
-
-    private void requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_CODE_STORAGE);
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_STORAGE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadDrawings();
-            } else {
-                Toast.makeText(this, "Permission denied.", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    private void loadDrawings() {
-        File directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Colora");
-        
-        if (!directory.exists()) {
-            txtCount.setText("0 работ");
-            return;
-        }
-
-        File[] files = directory.listFiles(file -> file.isFile() && (file.getName().endsWith(".png") || file.getName().endsWith(".jpg")));
-        
-        if (files != null) {
-            allFiles = new ArrayList<>(Arrays.asList(files));
-            // Sort by last modified descending by default
-            allFiles.sort((f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
-            applyFilters();
-        }
-    }
-
-    public void onFavoriteToggled() {
-        if (chipFavorites.isChecked()) {
-            applyFilters();
-        }
+    private void loadCloudDrawings() {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("paintings")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    cloudDrawings.clear();
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        String title = doc.getString("title");
+                        String data = doc.getString("image_data");
+                        com.google.firebase.Timestamp ts = doc.getTimestamp("timestamp");
+                        if (title != null && data != null && ts != null) {
+                            cloudDrawings.add(new CloudDrawing(title, data, ts.getSeconds()));
+                        }
+                    }
+                    applyFilters();
+                });
     }
 
     private void applyFilters() {
-        List<File> filtered = new ArrayList<>();
-        for (File file : allFiles) {
-            boolean matchesSearch = file.getName().toLowerCase().contains(currentSearchQuery.toLowerCase());
+        if (isFinishing() || isDestroyed()) return;
+
+        // Удаляем старые фрагменты
+        FragmentTransaction removeTransaction = getSupportFragmentManager().beginTransaction();
+        List<Fragment> currentFragments = getSupportFragmentManager().getFragments();
+        for (Fragment f : currentFragments) {
+            if (f instanceof DrawingItemFragment) {
+                removeTransaction.remove(f);
+            }
+        }
+        removeTransaction.commitNowAllowingStateLoss();
+
+        galleryContainer.removeAllViews();
+        int totalCount = 0;
+
+        FragmentTransaction addTransaction = getSupportFragmentManager().beginTransaction();
+
+        for (CloudDrawing cd : cloudDrawings) {
+            boolean matchesSearch = cd.title.toLowerCase().contains(currentSearchQuery.toLowerCase());
             boolean matchesChip = true;
 
             if (chipFavorites.isChecked()) {
-                matchesChip = favoritesManager.isFavorite(file.getAbsolutePath());
-            } else if (chipRecent.isChecked()) {
-                // For "Recent", we could limit to last 7 days or just keep the default sort
-                // Here let's assume "Recent" is just the same list sorted by date (which it already is)
-                // but maybe limited in count? Or just the default view.
-                // Let's keep it as is for now.
+                matchesChip = favoritesManager.isFavorite(cd.title);
             }
 
             if (matchesSearch && matchesChip) {
-                filtered.add(file);
+                // Исправлено: передаем 3 аргумента (title, data, isSmall = false)
+                DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(cd.title, cd.data, false);
+                addTransaction.add(galleryContainer.getId(), fragment);
+                totalCount++;
             }
         }
-        displayFiles(filtered);
-    }
-
-    private void displayFiles(List<File> files) {
-        galleryContainer.removeAllViews();
-        txtCount.setText(String.format(Locale.getDefault(), "%d %s", files.size(), getWorkWord(files.size())));
-
-        for (File file : files) {
-            DrawingItemFragment fragment = DrawingItemFragment.newInstance(file.getAbsolutePath());
-            getSupportFragmentManager().beginTransaction()
-                    .add(galleryContainer.getId(), fragment)
-                    .commit();
-        }
+        
+        addTransaction.commitAllowingStateLoss();
+        txtCount.setText(String.format(Locale.getDefault(), "%d %s", totalCount, getWorkWord(totalCount)));
     }
 
     private String getWorkWord(int count) {

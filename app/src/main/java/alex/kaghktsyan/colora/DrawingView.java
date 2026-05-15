@@ -14,15 +14,23 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Stack;
 
 public class DrawingView extends View {
@@ -100,12 +108,10 @@ public class DrawingView extends View {
     private List<Bitmap[]> redoStack = new ArrayList<>();
     private static final int MAX_UNDO_STEPS = 10;
 
-    // Timelapse members
     private boolean isRecordingTimelapse = false;
     private File timelapseDir;
     private int frameCounter = 0;
 
-    // Transformation members
     private Matrix drawMatrix = new Matrix();
     private Matrix inverseMatrix = new Matrix();
     private ScaleGestureDetector scaleGestureDetector;
@@ -204,14 +210,16 @@ public class DrawingView extends View {
         if (!isRecordingTimelapse) return;
         
         Bitmap frame = getBitmap();
-        File frameFile = new File(timelapseDir, String.format("frame_%05d.jpg", frameCounter++));
-        try (FileOutputStream out = new FileOutputStream(frameFile)) {
-            frame.compress(Bitmap.CompressFormat.JPEG, 80, out);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            frame.recycle();
-        }
+        final int currentFrame = frameCounter++;
+        new Thread(() -> {
+            File frameFile = new File(timelapseDir, String.format(Locale.US, "frame_%05d.jpg", currentFrame));
+            try (FileOutputStream out = new FileOutputStream(frameFile)) {
+                frame.compress(Bitmap.CompressFormat.JPEG, 80, out);
+            } catch (IOException ignored) {
+            } finally {
+                frame.recycle();
+            }
+        }).start();
     }
 
     public void setTransformMode(boolean enabled) {
@@ -981,5 +989,36 @@ public class DrawingView extends View {
 
     public int getCurrentLayerIndex() {
         return currentLayerIndex;
+    }
+
+    public void saveToFirebase(String title) {
+        Bitmap bitmap = getBitmap();
+        new Thread(() -> {
+            Bitmap processedBitmap = bitmap;
+            int maxWidth = 1000;
+            if (processedBitmap.getWidth() > maxWidth) {
+                float ratio = (float) processedBitmap.getHeight() / processedBitmap.getWidth();
+                processedBitmap = Bitmap.createScaledBitmap(processedBitmap, maxWidth, (int) (maxWidth * ratio), true);
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+            byte[] data = baos.toByteArray();
+            String base64Image = Base64.encodeToString(data, Base64.DEFAULT);
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            Map<String, Object> painting = new HashMap<>();
+            painting.put("title", title);
+            painting.put("image_data", base64Image);
+            painting.put("timestamp", Timestamp.now());
+
+            db.collection("paintings").add(painting);
+
+            if (processedBitmap != bitmap) {
+                processedBitmap.recycle();
+            }
+            bitmap.recycle();
+        }).start();
     }
 }
