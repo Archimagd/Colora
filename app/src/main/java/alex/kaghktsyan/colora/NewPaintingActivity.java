@@ -1,6 +1,5 @@
 package alex.kaghktsyan.colora;
 
-import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -22,6 +21,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -76,7 +76,7 @@ public class NewPaintingActivity extends AppCompatActivity {
             }
     );
 
-    private List<Integer> paletteColors = new ArrayList<>(Arrays.asList(
+    private final List<Integer> paletteColors = new ArrayList<>(Arrays.asList(
             Color.BLACK, Color.DKGRAY, Color.GRAY, Color.LTGRAY, Color.WHITE,
             Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN, Color.MAGENTA,
             Color.parseColor("#FF5722"), Color.parseColor("#4CAF50"), Color.parseColor("#2196F3"),
@@ -198,12 +198,12 @@ public class NewPaintingActivity extends AppCompatActivity {
                 resetTools();
                 drawingView.setTransformMode(true);
                 btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
+                // Disable symmetry when moving the canvas
+                drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             }
         });
 
-        btnZoom.setOnClickListener(v -> {
-            drawingView.resetTransform();
-        });
+        btnZoom.setOnClickListener(v -> drawingView.resetTransform());
 
         btnReference.setOnClickListener(v -> {
             if (referencePanel.getVisibility() == View.GONE) {
@@ -287,6 +287,7 @@ public class NewPaintingActivity extends AppCompatActivity {
                 symmetryPanel.setVisibility(View.GONE);
             } else {
                 selectTool(toolSymmetry);
+                updateSymmetryUI();
                 symmetryPanel.setVisibility(View.VISIBLE);
             }
         });
@@ -299,7 +300,8 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         // Symmetry buttons listeners
         symNone.setOnClickListener(v -> {
-            selectSymmetry(DrawingView.SymmetryType.NONE, symNone);
+            // Exit symmetry mode: disable, close panel, and back to brush
+            drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             symmetryPanel.setVisibility(View.GONE);
             selectTool(toolBrush);
             drawingView.setEraserMode(false);
@@ -342,11 +344,9 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         btnColorPicker.setOnClickListener(v -> showColorPickerBottomSheet());
 
-        drawingView.setOnColorPickedListener(color -> {
-            updateCurrentColorUI(color);
-        });
+        drawingView.setOnColorPickedListener(this::updateCurrentColorUI);
 
-        drawingView.setOnTextRequestListener((x, y) -> showTextInputDialog(x, y));
+        drawingView.setOnTextRequestListener(this::showTextInputDialog);
     }
 
     private void showTimelapseOptionsDialog() {
@@ -364,18 +364,22 @@ public class NewPaintingActivity extends AppCompatActivity {
     }
 
     private void startTimelapseExport() {
-        ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("Экспорт видео");
-        progressDialog.setMessage("Пожалуйста, подождите...");
-        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        progressDialog.setCancelable(false);
-        progressDialog.setMax(100);
+        ProgressBar progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        progressBar.setPadding(40, 40, 40, 40);
+
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setTitle("Экспорт видео")
+                .setMessage("Пожалуйста, подождите...")
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
         progressDialog.show();
 
         TimelapseExporter.export(this, drawingView.getTimelapseDir(), new TimelapseExporter.ExportListener() {
             @Override
             public void onProgress(int progress) {
-                progressDialog.setProgress(progress);
+                progressBar.setProgress(progress);
             }
 
             @Override
@@ -383,7 +387,6 @@ public class NewPaintingActivity extends AppCompatActivity {
                 progressDialog.dismiss();
                 Toast.makeText(NewPaintingActivity.this, "Видео сохранено в галерею!", Toast.LENGTH_LONG).show();
                 
-                // Предложить поделиться видео
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("video/mp4");
                 shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
@@ -491,6 +494,20 @@ public class NewPaintingActivity extends AppCompatActivity {
         }
     }
 
+    private void updateSymmetryUI() {
+        resetSymmetryButtons();
+        DrawingView.SymmetryType type = drawingView.getSymmetryType();
+        ImageButton toSelect;
+        switch (type) {
+            case VERTICAL: toSelect = symVertical; break;
+            case HORIZONTAL: toSelect = symHorizontal; break;
+            case RADIAL: toSelect = symRadial; break;
+            default: toSelect = symNone; break;
+        }
+        toSelect.setSelected(true);
+        toSelect.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
+    }
+
     private void updateCurrentColorUI(int color) {
         drawingView.setColor(color);
         currentColorPreview.setBackgroundTintList(ColorStateList.valueOf(color));
@@ -537,6 +554,7 @@ public class NewPaintingActivity extends AppCompatActivity {
         shapesPanel.setVisibility(View.GONE);
         symmetryPanel.setVisibility(View.GONE);
         resetShapeButtons();
+        resetSymmetryButtons();
     }
 
     private void selectTool(ImageButton selected) {
@@ -544,13 +562,16 @@ public class NewPaintingActivity extends AppCompatActivity {
         resetTools();
         selected.setSelected(true);
         selected.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
+
+        // Disable symmetry if any tool other than the symmetry tool is selected
+        if (selected != toolSymmetry) {
+            drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
+        }
     }
 
     private void setupPalette() {
         rvPalette.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        paletteAdapter = new ColorSwatchAdapter(paletteColors, color -> {
-            updateCurrentColorUI(color);
-        });
+        paletteAdapter = new ColorSwatchAdapter(paletteColors, this::updateCurrentColorUI);
         rvPalette.setAdapter(paletteAdapter);
         paletteAdapter.setSelectedColor(drawingView.getColor());
     }
@@ -623,6 +644,8 @@ public class NewPaintingActivity extends AppCompatActivity {
             }
 
             DrawingView.Layer layer = getItem(position);
+            if (layer == null) return convertView;
+
             CheckBox checkVisibility = convertView.findViewById(R.id.checkVisibility);
             ImageView imgPreview = convertView.findViewById(R.id.imgLayerPreview);
             TextView txtName = convertView.findViewById(R.id.txtLayerName);
