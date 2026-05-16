@@ -16,7 +16,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Colora">
+        android:theme="@style/Theme.Colora"
+        android:largeHeap="true">
         
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -28,11 +29,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <activity
-            android:name="alex.kaghktsyan.colora.ProfileActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity"/>
         <activity
             android:name="alex.kaghktsyan.colora.GalleryActivity"
             android:exported="false"

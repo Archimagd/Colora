@@ -56,9 +56,6 @@ public class MainActivity extends AppCompatActivity {
             int id = item.getItemId();
             if (id == R.id.navigation_home) {
                 return true;
-            } else if (id == R.id.navigation_profile) {
-                startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-                return true;
             }
             return false;
         });
@@ -66,36 +63,34 @@ public class MainActivity extends AppCompatActivity {
         loadRecentDrawings();
     }
 
-    private void loadRecentDrawings() {
+    public void loadRecentDrawings() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("paintings")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(10)
+                .limit(5)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (isFinishing() || isDestroyed()) return;
-
-                    FragmentTransaction removeTransaction = getSupportFragmentManager().beginTransaction();
-                    List<Fragment> fragments = getSupportFragmentManager().getFragments();
-                    for (Fragment f : fragments) {
-                        if (f instanceof DrawingItemFragment) {
-                            removeTransaction.remove(f);
-                        }
-                    }
-                    removeTransaction.commitNowAllowingStateLoss();
                     
                     recentContainer.removeAllViews();
+                    FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
                     
-                    FragmentTransaction addTransaction = getSupportFragmentManager().beginTransaction();
+                    List<Fragment> currentFragments = getSupportFragmentManager().getFragments();
+                    for (Fragment f : currentFragments) {
+                        if (f instanceof DrawingItemFragment) {
+                            transaction.remove(f);
+                        }
+                    }
+
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         String title = doc.getString("title");
                         String data = doc.getString("image_data");
                         if (title != null && data != null) {
-                            DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(title, data, true);
-                            addTransaction.add(recentContainer.getId(), fragment);
+                            DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(doc.getId(), title, data, true);
+                            transaction.add(recentContainer.getId(), fragment);
                         }
                     }
-                    addTransaction.commitAllowingStateLoss();
+                    transaction.commitAllowingStateLoss();
                 });
     }
 

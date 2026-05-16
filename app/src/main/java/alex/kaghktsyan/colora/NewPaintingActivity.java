@@ -1,6 +1,5 @@
 package alex.kaghktsyan.colora;
 
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
@@ -9,7 +8,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -43,9 +41,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import java.io.File;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,10 +60,9 @@ public class NewPaintingActivity extends AppCompatActivity {
     private TextView tvSizeValue, tvOpacityValue, tvHardnessValue;
     private View currentColorPreview;
     private RecyclerView rvPalette;
-    private ImageButton btnColorPicker;
     private ColorSwatchAdapter paletteAdapter;
 
-    private float dX, dY; // For reference window dragging
+    private float dX, dY;
 
     private final ActivityResultLauncher<String> pickReferenceLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
@@ -107,21 +102,24 @@ public class NewPaintingActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Load image if passed (Cloud)
-        String cloudImageData = getIntent().getStringExtra("cloud_image_data");
+        // БЕЗОПАСНАЯ ЗАГРУЗКА: Используем статическое поле вместо Intent
+        String cloudImageData = DrawingItemFragment.pendingImageData;
+        DrawingItemFragment.pendingImageData = null; // Сразу очищаем для экономии памяти
+
         if (cloudImageData != null) {
             try {
                 byte[] decodedString = Base64.decode(cloudImageData, Base64.DEFAULT);
                 Bitmap cloudBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                drawingView.loadBitmap(cloudBitmap);
-            } catch (Exception ignored) {
+                if (cloudBitmap != null) {
+                    drawingView.loadBitmap(cloudBitmap);
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "Ошибка загрузки рисунка", Toast.LENGTH_SHORT).show();
             }
         }
 
-        // Initial UI states
         selectTool(toolBrush);
         
-        // Initial values for SeekBars
         sbSize.setProgress((int) drawingView.getStrokeWidth());
         tvSizeValue.setText(String.valueOf(sbSize.getProgress()));
         
@@ -176,13 +174,13 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         currentColorPreview = findViewById(R.id.currentColorPreview);
         rvPalette = findViewById(R.id.rvPalette);
-        btnColorPicker = findViewById(R.id.btnColorPicker);
         
         referencePanel = findViewById(R.id.referencePanel);
         imgReference = findViewById(R.id.imgReference);
         btnCloseReference = findViewById(R.id.btnCloseReference);
         
         drawingView.setBackgroundColor(Color.WHITE);
+        findViewById(R.id.btnColorPicker).setOnClickListener(v -> showColorPickerBottomSheet());
     }
 
     private void setupListeners() {
@@ -201,7 +199,6 @@ public class NewPaintingActivity extends AppCompatActivity {
                 resetTools();
                 drawingView.setTransformMode(true);
                 btnHand.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
-                drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             }
         });
 
@@ -228,68 +225,34 @@ public class NewPaintingActivity extends AppCompatActivity {
 
         btnCloseReference.setOnClickListener(v -> referencePanel.setVisibility(View.GONE));
 
-        referencePanel.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        dX = view.getX() - event.getRawX();
-                        dY = view.getY() - event.getRawY();
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        view.animate()
-                                .x(event.getRawX() + dX)
-                                .y(event.getRawY() + dY)
-                                .setDuration(0)
-                                .start();
-                        break;
-                    default:
-                        return false;
-                }
-                return true;
+        referencePanel.setOnTouchListener((view, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    dX = view.getX() - event.getRawX();
+                    dY = view.getY() - event.getRawY();
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    view.setX(event.getRawX() + dX);
+                    view.setY(event.getRawY() + dY);
+                    break;
+                default: return false;
             }
+            return true;
         });
 
-        toolBrush.setOnClickListener(v -> {
-            selectTool(toolBrush);
-            drawingView.setEraserMode(false);
-        });
-        toolEraser.setOnClickListener(v -> {
-            selectTool(toolEraser);
-            drawingView.setEraserMode(true);
-        });
-        toolFill.setOnClickListener(v -> {
-            selectTool(toolFill);
-            drawingView.setFillMode(true);
-        });
-        toolPicker.setOnClickListener(v -> {
-            selectTool(toolPicker);
-            drawingView.setPickerMode(true);
-        });
+        toolBrush.setOnClickListener(v -> { selectTool(toolBrush); drawingView.setEraserMode(false); });
+        toolEraser.setOnClickListener(v -> { selectTool(toolEraser); drawingView.setEraserMode(true); });
+        toolFill.setOnClickListener(v -> { selectTool(toolFill); drawingView.setFillMode(true); });
+        toolPicker.setOnClickListener(v -> { selectTool(toolPicker); drawingView.setPickerMode(true); });
         toolShapes.setOnClickListener(v -> {
-            if (shapesPanel.getVisibility() == View.VISIBLE) {
-                shapesPanel.setVisibility(View.GONE);
-            } else {
-                selectTool(toolShapes);
-                shapesPanel.setVisibility(View.VISIBLE);
-            }
+            if (shapesPanel.getVisibility() == View.VISIBLE) shapesPanel.setVisibility(View.GONE);
+            else { selectTool(toolShapes); shapesPanel.setVisibility(View.VISIBLE); }
         });
-        toolText.setOnClickListener(v -> {
-            selectTool(toolText);
-            drawingView.setTextMode(true);
-        });
-        toolSelect.setOnClickListener(v -> {
-            selectTool(toolSelect);
-            drawingView.setSelectMode(true);
-        });
+        toolText.setOnClickListener(v -> { selectTool(toolText); drawingView.setTextMode(true); });
+        toolSelect.setOnClickListener(v -> { selectTool(toolSelect); drawingView.setSelectMode(true); });
         toolSymmetry.setOnClickListener(v -> {
-             if (symmetryPanel.getVisibility() == View.VISIBLE) {
-                symmetryPanel.setVisibility(View.GONE);
-            } else {
-                selectTool(toolSymmetry);
-                updateSymmetryUI();
-                symmetryPanel.setVisibility(View.VISIBLE);
-            }
+             if (symmetryPanel.getVisibility() == View.VISIBLE) symmetryPanel.setVisibility(View.GONE);
+             else { selectTool(toolSymmetry); updateSymmetryUI(); symmetryPanel.setVisibility(View.VISIBLE); }
         });
 
         shapeLine.setOnClickListener(v -> selectShape(DrawingView.ShapeType.LINE, shapeLine));
@@ -301,58 +264,41 @@ public class NewPaintingActivity extends AppCompatActivity {
             drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
             symmetryPanel.setVisibility(View.GONE);
             selectTool(toolBrush);
-            drawingView.setEraserMode(false);
         });
         symVertical.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.VERTICAL, symVertical));
         symHorizontal.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.HORIZONTAL, symHorizontal));
         symRadial.setOnClickListener(v -> selectSymmetry(DrawingView.SymmetryType.RADIAL, symRadial));
 
-        sbSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                int size = Math.max(1, progress);
-                drawingView.setStrokeWidth(size);
-                tvSizeValue.setText(String.valueOf(size));
+        sbSize.setOnSeekBarChangeListener(new SimpleSeekBarListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                drawingView.setStrokeWidth(Math.max(1, progress));
+                tvSizeValue.setText(String.valueOf(Math.max(1, progress)));
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        sbOpacity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        sbOpacity.setOnSeekBarChangeListener(new SimpleSeekBarListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 drawingView.setBrushAlpha(progress);
                 tvOpacityValue.setText(String.valueOf(progress));
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        sbHardness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        sbHardness.setOnSeekBarChangeListener(new SimpleSeekBarListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 drawingView.setHardness(progress);
                 tvHardnessValue.setText(String.valueOf(progress));
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        btnColorPicker.setOnClickListener(v -> showColorPickerBottomSheet());
-
         drawingView.setOnColorPickedListener(this::updateCurrentColorUI);
-
         drawingView.setOnTextRequestListener(this::showTextInputDialog);
     }
 
     private void showTimelapseOptionsDialog() {
-        if (drawingView.getFrameCount() < 2) {
-            return;
-        }
-        
+        if (drawingView.getFrameCount() < 2) return;
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Таймлапс готов")
-                .setMessage("Вы хотите сохранить процесс создания арта (" + drawingView.getFrameCount() + " кадров)?")
+                .setMessage("Сохранить процесс (" + drawingView.getFrameCount() + " кадров)?")
                 .setPositiveButton("Экспорт", (dialog, which) -> startTimelapseExport())
                 .setNegativeButton("Отмена", null)
                 .show();
@@ -372,68 +318,42 @@ public class NewPaintingActivity extends AppCompatActivity {
         progressDialog.show();
 
         TimelapseExporter.export(this, drawingView.getTimelapseDir(), new TimelapseExporter.ExportListener() {
-            @Override
-            public void onProgress(int progress) {
-                progressBar.setProgress(progress);
-            }
-
-            @Override
-            public void onComplete(Uri uri) {
+            @Override public void onProgress(int progress) { progressBar.setProgress(progress); }
+            @Override public void onComplete(Uri uri) {
                 progressDialog.dismiss();
-                
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("video/mp4");
                 shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-                startActivity(Intent.createChooser(shareIntent, "Поделиться таймлапсом"));
+                startActivity(Intent.createChooser(shareIntent, "Поделиться"));
             }
-
-            @Override
-            public void onError(String error) {
-                progressDialog.dismiss();
-            }
+            @Override public void onError(String error) { progressDialog.dismiss(); }
         });
     }
 
     private void showSaveDialog() {
         final EditText input = new EditText(this);
-        input.setHint("Введите название");
-        
+        input.setHint("Название рисунка");
         int padding = dpToPx(20);
         input.setPadding(padding, padding, padding, padding);
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Сохранить рисунок")
+                .setTitle("Сохранить")
                 .setView(input)
-                .setPositiveButton("Сохранить", (dialog, which) -> {
-                    String fileName = input.getText().toString().trim();
-                    if (fileName.isEmpty()) {
-                        fileName = "Colora_" + System.currentTimeMillis();
-                    }
-                    String finalFileName = fileName;
-                    
-                    // Second confirmation dialog
-                    new MaterialAlertDialogBuilder(this)
-                            .setTitle("Подтверждение сохранения")
-                            .setMessage("Вы уверены, что хотите сохранить этот рисунок?")
-                            .setPositiveButton("Да, сохранить", (dialog2, which2) -> {
-                                drawingView.saveToFirebase(finalFileName);
-                                Toast.makeText(this, "Сохранение...", Toast.LENGTH_SHORT).show();
-                            })
-                            .setNegativeButton("Отмена", null)
-                            .show();
+                .setPositiveButton("ОК", (dialog, which) -> {
+                    String name = input.getText().toString().trim();
+                    drawingView.saveToFirebase(name.isEmpty() ? "Colora_" + System.currentTimeMillis() : name);
+                    Toast.makeText(this, "Сохранение...", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("Отмена", (dialog, which) -> dialog.cancel())
+                .setNegativeButton("Отмена", null)
                 .show();
     }
 
     private void loadReferenceImage(Uri uri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
+        try (InputStream inputStream = getContentResolver().openInputStream(uri)) {
             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
             imgReference.setImageBitmap(bitmap);
             referencePanel.setVisibility(View.VISIBLE);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
     private void selectShape(DrawingView.ShapeType type, ImageButton button) {
@@ -446,10 +366,7 @@ public class NewPaintingActivity extends AppCompatActivity {
     private void resetShapeButtons() {
         int iconColor = getThemeColor(R.attr.mainTextColor);
         ImageButton[] shapeButtons = {shapeLine, shapeRect, shapeCircle, shapeTriangle};
-        for (ImageButton b : shapeButtons) {
-            b.setSelected(false);
-            b.setImageTintList(ColorStateList.valueOf(iconColor));
-        }
+        for (ImageButton b : shapeButtons) b.setImageTintList(ColorStateList.valueOf(iconColor));
     }
 
     private void selectSymmetry(DrawingView.SymmetryType type, ImageButton button) {
@@ -462,52 +379,33 @@ public class NewPaintingActivity extends AppCompatActivity {
     private void resetSymmetryButtons() {
         int iconColor = getThemeColor(R.attr.mainTextColor);
         ImageButton[] symButtons = {symNone, symVertical, symHorizontal, symRadial};
-        for (ImageButton b : symButtons) {
-            b.setSelected(false);
-            b.setImageTintList(ColorStateList.valueOf(iconColor));
-        }
+        for (ImageButton b : symButtons) b.setImageTintList(ColorStateList.valueOf(iconColor));
     }
 
     private void updateSymmetryUI() {
         resetSymmetryButtons();
-        DrawingView.SymmetryType type = drawingView.getSymmetryType();
         ImageButton toSelect;
-        switch (type) {
+        switch (drawingView.getSymmetryType()) {
             case VERTICAL: toSelect = symVertical; break;
             case HORIZONTAL: toSelect = symHorizontal; break;
             case RADIAL: toSelect = symRadial; break;
             default: toSelect = symNone; break;
         }
-        toSelect.setSelected(true);
         toSelect.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
     }
 
     private void updateCurrentColorUI(int color) {
         drawingView.setColor(color);
         currentColorPreview.setBackgroundTintList(ColorStateList.valueOf(color));
-        int alpha = Color.alpha(color);
-        sbOpacity.setProgress(alpha);
-        tvOpacityValue.setText(String.valueOf(alpha));
-        if (paletteAdapter != null) {
-            paletteAdapter.setSelectedColor(color);
-        }
+        sbOpacity.setProgress(Color.alpha(color));
+        if (paletteAdapter != null) paletteAdapter.setSelectedColor(color);
     }
 
     private void showTextInputDialog(float x, float y) {
         final EditText input = new EditText(this);
-        int padding = dpToPx(20);
-        input.setPadding(padding, padding, padding, padding);
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle("Введите текст")
-                .setView(input)
-                .setPositiveButton("OK", (dialog, which) -> {
-                    String text = input.getText().toString();
-                    if (!text.isEmpty()) {
-                        drawingView.drawText(text, x, y);
-                    }
-                })
-                .setNegativeButton("Отмена", (dialog, which) -> dialog.cancel())
+        input.setPadding(40, 40, 40, 40);
+        new MaterialAlertDialogBuilder(this).setTitle("Текст").setView(input)
+                .setPositiveButton("OK", (d, w) -> drawingView.drawText(input.getText().toString(), x, y))
                 .show();
     }
 
@@ -515,31 +413,20 @@ public class NewPaintingActivity extends AppCompatActivity {
         int iconColor = getThemeColor(R.attr.mainTextColor);
         btnHand.setImageTintList(ColorStateList.valueOf(iconColor));
         btnZoom.setImageTintList(ColorStateList.valueOf(iconColor));
-        btnTimelapse.setImageTintList(ColorStateList.valueOf(drawingView.isRecordingTimelapse() ? Color.RED : iconColor));
     }
 
     private void resetTools() {
         int iconColor = getThemeColor(R.attr.mainTextColor);
         ImageButton[] tools = {toolBrush, toolEraser, toolFill, toolPicker, toolShapes, toolText, toolSelect, toolSymmetry};
-        for (ImageButton t : tools) {
-            t.setSelected(false);
-            t.setImageTintList(ColorStateList.valueOf(iconColor));
-        }
+        for (ImageButton t : tools) t.setImageTintList(ColorStateList.valueOf(iconColor));
         shapesPanel.setVisibility(View.GONE);
         symmetryPanel.setVisibility(View.GONE);
-        resetShapeButtons();
-        resetSymmetryButtons();
     }
 
     private void selectTool(ImageButton selected) {
         resetTopButtons();
         resetTools();
-        selected.setSelected(true);
         selected.setImageTintList(ColorStateList.valueOf(getColor(R.color.purple_main)));
-
-        if (selected != toolSymmetry) {
-            drawingView.setSymmetryType(DrawingView.SymmetryType.NONE);
-        }
     }
 
     private void setupPalette() {
@@ -561,100 +448,45 @@ public class NewPaintingActivity extends AppCompatActivity {
 
     private void showLayersBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        try {
-            View view = getLayoutInflater().inflate(R.layout.bottom_sheet_layers, null);
-            ListView listView = view.findViewById(R.id.listLayers);
-            Button btnAddLayer = view.findViewById(R.id.btnAddLayer);
-
-            LayerAdapter adapter = new LayerAdapter(drawingView.getLayers());
-            listView.setAdapter(adapter);
-
-            btnAddLayer.setOnClickListener(v -> {
-                drawingView.addLayer("Слой " + (drawingView.getLayers().size() + 1));
-                adapter.notifyDataSetChanged();
-            });
-
-            dialog.setContentView(view);
-            dialog.show();
-        } catch (Exception ignored) {
-        }
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_layers, null);
+        ListView listView = view.findViewById(R.id.listLayers);
+        LayerAdapter adapter = new LayerAdapter(drawingView.getLayers());
+        listView.setAdapter(adapter);
+        view.findViewById(R.id.btnAddLayer).setOnClickListener(v -> {
+            drawingView.addLayer("Слой " + (drawingView.getLayers().size() + 1));
+            adapter.notifyDataSetChanged();
+        });
+        dialog.setContentView(view);
+        dialog.show();
     }
 
     private void showColorPickerBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_color_picker, null);
-        
-        ColorPickerView colorPickerView = view.findViewById(R.id.colorPickerView);
-        Button btnSelectColor = view.findViewById(R.id.btnSelectColor);
-        
-        colorPickerView.setColor(drawingView.getColor());
-        
-        btnSelectColor.setOnClickListener(v -> {
-            int selectedColor = colorPickerView.getColor();
-            updateCurrentColorUI(selectedColor);
-            
-            if (!paletteColors.contains(selectedColor)) {
-                paletteColors.add(0, selectedColor);
-                paletteAdapter.notifyItemInserted(0);
-                rvPalette.scrollToPosition(0);
-                paletteAdapter.setSelectedColor(selectedColor);
-            }
-            
+        ColorPickerView cpv = view.findViewById(R.id.colorPickerView);
+        cpv.setColor(drawingView.getColor());
+        view.findViewById(R.id.btnSelectColor).setOnClickListener(v -> {
+            updateCurrentColorUI(cpv.getColor());
             dialog.dismiss();
         });
-        
         dialog.setContentView(view);
         dialog.show();
     }
 
+    private abstract static class SimpleSeekBarListener implements SeekBar.OnSeekBarChangeListener {
+        @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+        @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+    }
+
     private class LayerAdapter extends ArrayAdapter<DrawingView.Layer> {
-        public LayerAdapter(List<DrawingView.Layer> layers) {
-            super(NewPaintingActivity.this, R.layout.item_layer, layers);
-        }
-
-        @NonNull
-        @Override
-        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.item_layer, parent, false);
-            }
-
+        public LayerAdapter(List<DrawingView.Layer> layers) { super(NewPaintingActivity.this, R.layout.item_layer, layers); }
+        @NonNull @Override public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+            if (convertView == null) convertView = getLayoutInflater().inflate(R.layout.item_layer, parent, false);
             DrawingView.Layer layer = getItem(position);
-            if (layer == null) return convertView;
-
-            CheckBox checkVisibility = convertView.findViewById(R.id.checkVisibility);
-            ImageView imgPreview = convertView.findViewById(R.id.imgLayerPreview);
-            TextView txtName = convertView.findViewById(R.id.txtLayerName);
-            ImageButton btnDelete = convertView.findViewById(R.id.btnDeleteLayer);
-
-            txtName.setText(layer.name);
-            checkVisibility.setChecked(layer.isVisible);
-            imgPreview.setImageBitmap(layer.bitmap);
-
-            if (position == drawingView.getCurrentLayerIndex()) {
-                convertView.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(R.attr.cardBackgroundColor)));
-                convertView.setAlpha(0.7f);
-            } else {
-                convertView.setBackgroundTintList(null);
-                convertView.setAlpha(1.0f);
-            }
-
-            convertView.setOnClickListener(v -> {
-                drawingView.setCurrentLayerIndex(position);
-                notifyDataSetChanged();
-                drawingView.invalidate();
-            });
-
-            checkVisibility.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                layer.isVisible = isChecked;
-                drawingView.invalidate();
-            });
-
-            btnDelete.setOnClickListener(v -> {
-                drawingView.removeLayer(position);
-                notifyDataSetChanged();
-            });
-
+            ((TextView)convertView.findViewById(R.id.txtLayerName)).setText(layer.name);
+            ((CheckBox)convertView.findViewById(R.id.checkVisibility)).setChecked(layer.isVisible);
+            ((ImageView)convertView.findViewById(R.id.imgLayerPreview)).setImageBitmap(layer.bitmap);
+            convertView.setOnClickListener(v -> { drawingView.setCurrentLayerIndex(position); notifyDataSetChanged(); });
             return convertView;
         }
     }

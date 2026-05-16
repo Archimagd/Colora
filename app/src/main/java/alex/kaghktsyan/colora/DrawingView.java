@@ -19,6 +19,8 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -74,8 +76,9 @@ public class DrawingView extends View {
     private Paint paint;
     private Paint textPaint;
     private Paint selectionPaint;
-    private Path currentPath = new Path();
-    private List<Layer> layers = new ArrayList<>();
+    private final Paint layerPaint = new Paint();
+    private final Path currentPath = new Path();
+    private final List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = -1;
 
     private float lastX, lastY;
@@ -104,16 +107,16 @@ public class DrawingView extends View {
     private OnColorPickedListener colorPickedListener;
     private OnTextRequestListener textRequestListener;
 
-    private List<Bitmap[]> undoStack = new ArrayList<>();
-    private List<Bitmap[]> redoStack = new ArrayList<>();
+    private final List<Bitmap[]> undoStack = new ArrayList<>();
+    private final List<Bitmap[]> redoStack = new ArrayList<>();
     private static final int MAX_UNDO_STEPS = 10;
 
     private boolean isRecordingTimelapse = false;
     private File timelapseDir;
     private int frameCounter = 0;
 
-    private Matrix drawMatrix = new Matrix();
-    private Matrix inverseMatrix = new Matrix();
+    private final Matrix drawMatrix = new Matrix();
+    private final Matrix inverseMatrix = new Matrix();
     private ScaleGestureDetector scaleGestureDetector;
     private RotationGestureDetector rotationGestureDetector;
     private float lastTouchX, lastTouchY;
@@ -160,7 +163,7 @@ public class DrawingView extends View {
     private void setupGestures(Context context) {
         scaleGestureDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
-            public boolean onScale(ScaleGestureDetector detector) {
+            public boolean onScale(@NonNull ScaleGestureDetector detector) {
                 float scaleFactor = detector.getScaleFactor();
                 drawMatrix.postScale(scaleFactor, scaleFactor, detector.getFocusX(), detector.getFocusY());
                 invalidate();
@@ -182,10 +185,14 @@ public class DrawingView extends View {
         if (timelapseDir.exists()) {
             File[] files = timelapseDir.listFiles();
             if (files != null) {
-                for (File f : files) f.delete();
+                for (File f : files) {
+                    if (!f.delete()) f.deleteOnExit();
+                }
             }
         } else {
-            timelapseDir.mkdirs();
+            if (!timelapseDir.mkdirs()) {
+                // handle error or log
+            }
         }
         captureTimelapseFrame();
     }
@@ -286,7 +293,7 @@ public class DrawingView extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawColor(backgroundColor);
 
@@ -296,7 +303,6 @@ public class DrawingView extends View {
         for (int i = 0; i < layers.size(); i++) {
             Layer layer = layers.get(i);
             if (layer.isVisible) {
-                Paint layerPaint = new Paint();
                 layerPaint.setAlpha((int) (layer.opacity * 255));
                 canvas.drawBitmap(layer.bitmap, 0, 0, layerPaint);
 
@@ -424,7 +430,7 @@ public class DrawingView extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 if (isPickerMode) {
-                    pickColor((int) x, (int) y);
+                    pickColor(x, y);
                     return true;
                 }
                 if (isFillMode) {
@@ -539,6 +545,11 @@ public class DrawingView extends View {
         return true;
     }
 
+    @Override
+    public boolean performClick() {
+        return super.performClick();
+    }
+
     private void handlePanning(MotionEvent event) {
         float sumX = 0, sumY = 0;
         int count = event.getPointerCount();
@@ -588,8 +599,8 @@ public class DrawingView extends View {
         
         int left = (int) Math.max(0, selectionRect.left);
         int top = (int) Math.max(0, selectionRect.top);
-        int right = (int) Math.min(layer.bitmap.getWidth(), (int)selectionRect.right);
-        int bottom = (int) Math.min(layer.bitmap.getHeight(), (int)selectionRect.bottom);
+        int right = (int) Math.min(layer.bitmap.getWidth(), selectionRect.right);
+        int bottom = (int) Math.min(layer.bitmap.getHeight(), selectionRect.bottom);
         
         if (right <= left || bottom <= top) return;
 
@@ -631,12 +642,23 @@ public class DrawingView extends View {
         }
     }
 
-    private void pickColor(int x, int y) {
-        Bitmap fullBitmap = getBitmap();
-        int safeX = Math.max(0, Math.min(x, fullBitmap.getWidth() - 1));
-        int safeY = Math.max(0, Math.min(y, fullBitmap.getHeight() - 1));
-        int color = fullBitmap.getPixel(safeX, safeY);
-        fullBitmap.recycle();
+    private void pickColor(float x, float y) {
+        Bitmap pixel = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(pixel);
+        c.drawColor(backgroundColor);
+        
+        c.save();
+        c.translate(-x, -y);
+        for (Layer layer : layers) {
+            if (layer.isVisible) {
+                layerPaint.setAlpha((int) (layer.opacity * 255));
+                c.drawBitmap(layer.bitmap, 0, 0, layerPaint);
+            }
+        }
+        c.restore();
+        
+        int color = pixel.getPixel(0, 0);
+        pixel.recycle();
         
         setColor(color);
         if (colorPickedListener != null) {
@@ -724,8 +746,17 @@ public class DrawingView extends View {
         invalidate();
     }
 
+    private void clearStack(List<Bitmap[]> stack) {
+        for (Bitmap[] state : stack) {
+            for (Bitmap b : state) {
+                if (b != null && !b.isRecycled()) b.recycle();
+            }
+        }
+        stack.clear();
+    }
+
     private void saveStateToUndo() {
-        redoStack.clear();
+        clearStack(redoStack);
         Bitmap[] state = new Bitmap[layers.size()];
         for (int i = 0; i < layers.size(); i++) {
             state[i] = layers.get(i).bitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -793,15 +824,6 @@ public class DrawingView extends View {
         }
     }
 
-    public void clearCanvas() {
-        saveStateToUndo();
-        for (Layer layer : layers) {
-            layer.bitmap.eraseColor(Color.TRANSPARENT);
-        }
-        invalidate();
-        captureTimelapseFrame();
-    }
-
     public void setColor(int color) {
         currentColor = color;
         if (!isEraserMode) {
@@ -865,9 +887,8 @@ public class DrawingView extends View {
         canvas.drawColor(backgroundColor);
         for (Layer layer : layers) {
             if (layer.isVisible) {
-                Paint p = new Paint();
-                p.setAlpha((int) (layer.opacity * 255));
-                canvas.drawBitmap(layer.bitmap, 0, 0, p);
+                layerPaint.setAlpha((int) (layer.opacity * 255));
+                canvas.drawBitmap(layer.bitmap, 0, 0, layerPaint);
             }
         }
         return result;
@@ -876,6 +897,8 @@ public class DrawingView extends View {
     public void loadBitmap(Bitmap loadedBitmap) {
         for (Layer l : layers) l.recycle();
         layers.clear();
+        clearStack(undoStack);
+        clearStack(redoStack);
         
         Layer layer = new Layer(loadedBitmap.getWidth(), loadedBitmap.getHeight(), "Imported Layer");
         layer.canvas.drawBitmap(loadedBitmap, 0, 0, null);
@@ -921,11 +944,6 @@ public class DrawingView extends View {
         selectionRect = null;
     }
 
-    public void setMoveMode(boolean enabled) {
-        resetModes();
-        isMoveMode = enabled;
-    }
-
     public void setShapeType(ShapeType type) {
         resetModes();
         this.currentShape = type;
@@ -938,15 +956,6 @@ public class DrawingView extends View {
 
     public SymmetryType getSymmetryType() {
         return symmetryType;
-    }
-
-    public void setRadialSlices(int slices) {
-        this.radialSlices = Math.max(2, slices);
-        invalidate();
-    }
-
-    public int getRadialSlices() {
-        return radialSlices;
     }
 
     private void resetModes() {
@@ -965,10 +974,6 @@ public class DrawingView extends View {
         paint.setColor(currentColor);
         paint.setAlpha(currentAlpha);
         updateHardness();
-    }
-
-    public void toggleEraser() {
-        setEraserMode(!isEraserMode);
     }
 
     public void setBackgroundColor(int color) {

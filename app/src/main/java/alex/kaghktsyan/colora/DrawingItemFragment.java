@@ -23,6 +23,7 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,15 +34,21 @@ public class DrawingItemFragment extends Fragment {
     private static final String ARG_IS_SMALL = "is_small";
     private static final String ARG_CLOUD_DATA = "cloud_data";
     private static final String ARG_CLOUD_TITLE = "cloud_title";
+    private static final String ARG_CLOUD_ID = "cloud_id";
+
+    public static String pendingImageData;
 
     private String cloudData;
     private String cloudTitle;
+    private String cloudId;
     private boolean isSmall;
     private FavoritesManager favoritesManager;
+    private Bitmap currentBitmap;
 
-    public static DrawingItemFragment newInstanceFromCloud(String title, String base64Data, boolean isSmall) {
+    public static DrawingItemFragment newInstanceFromCloud(String id, String title, String base64Data, boolean isSmall) {
         DrawingItemFragment fragment = new DrawingItemFragment();
         Bundle args = new Bundle();
+        args.putString(ARG_CLOUD_ID, id);
         args.putString(ARG_CLOUD_TITLE, title);
         args.putString(ARG_CLOUD_DATA, base64Data);
         args.putBoolean(ARG_IS_SMALL, isSmall);
@@ -53,6 +60,7 @@ public class DrawingItemFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
+            cloudId = getArguments().getString(ARG_CLOUD_ID);
             cloudData = getArguments().getString(ARG_CLOUD_DATA);
             cloudTitle = getArguments().getString(ARG_CLOUD_TITLE);
             isSmall = getArguments().getBoolean(ARG_IS_SMALL);
@@ -73,6 +81,7 @@ public class DrawingItemFragment extends Fragment {
         ImageButton btnLike = view.findViewById(R.id.btnLike);
         ImageButton btnShare = view.findViewById(R.id.btnShare);
         ImageButton btnDownload = view.findViewById(R.id.btnDownload);
+        ImageButton btnDelete = view.findViewById(R.id.btnDelete);
 
         if (isSmall) {
             if (root != null) {
@@ -95,42 +104,61 @@ public class DrawingItemFragment extends Fragment {
             if (btnLike != null) btnLike.setVisibility(View.GONE);
             if (btnShare != null) btnShare.setVisibility(View.GONE);
             if (btnDownload != null) btnDownload.setVisibility(View.GONE);
+            if (btnDelete != null) btnDelete.setVisibility(View.GONE);
         }
 
         if (cloudData != null) {
-            setupCloudItem(view, imageView, txtTitle, txtDate, btnLike, btnShare, btnDownload);
+            setupCloudItem(view, imageView, txtTitle, txtDate, btnLike, btnShare, btnDownload, btnDelete);
         }
         
         return view;
     }
 
-    private void setupCloudItem(View root, ImageView imageView, TextView txtTitle, TextView txtDate, ImageButton btnLike, ImageButton btnShare, ImageButton btnDownload) {
+    private void setupCloudItem(View root, ImageView imageView, TextView txtTitle, TextView txtDate, 
+                                ImageButton btnLike, ImageButton btnShare, ImageButton btnDownload, ImageButton btnDelete) {
         txtTitle.setText(cloudTitle);
         txtDate.setText("В облаке");
         
-        byte[] decodedString = Base64.decode(cloudData, Base64.DEFAULT);
-        Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-        imageView.setImageBitmap(bitmap);
+        try {
+            byte[] decodedString = Base64.decode(cloudData, Base64.DEFAULT);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            if (isSmall) {
+                options.inSampleSize = 2;
+            }
+            currentBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length, options);
+            imageView.setImageBitmap(currentBitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         if (btnLike != null && !isSmall) {
-            btnLike.setOnClickListener(v -> {
-                favoritesManager.toggleFavorite(cloudTitle);
-            });
+            btnLike.setOnClickListener(v -> favoritesManager.toggleFavorite(cloudTitle));
         }
         
-        if (btnDownload != null && !isSmall) {
+        if (btnDownload != null && !isSmall && currentBitmap != null) {
             btnDownload.setOnClickListener(v -> {
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle("Скачивание")
                         .setMessage("Вы хотите сохранить этот рисунок в галерею устройства?")
-                        .setPositiveButton("Скачать", (dialog, which) -> saveCloudImageToGallery(bitmap, cloudTitle))
+                        .setPositiveButton("Скачать", (dialog, which) -> saveCloudImageToGallery(currentBitmap, cloudTitle))
                         .setNegativeButton("Отмена", null)
                         .show();
             });
         }
 
-        if (btnShare != null && !isSmall) {
-            btnShare.setOnClickListener(v -> shareImage(bitmap, cloudTitle));
+        if (btnShare != null && !isSmall && currentBitmap != null) {
+            btnShare.setOnClickListener(v -> shareImage(currentBitmap, cloudTitle));
+        }
+
+        if (btnDelete != null && !isSmall) {
+            btnDelete.setOnClickListener(v -> {
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("Удаление")
+                        .setMessage("Вы уверены, что хотите удалить этот рисунок навсегда?")
+                        .setPositiveButton("Удалить", (dialog, which) -> deleteFromCloud())
+                        .setNegativeButton("Отмена", null)
+                        .show();
+            });
         }
 
         root.setOnClickListener(v -> {
@@ -138,13 +166,36 @@ public class DrawingItemFragment extends Fragment {
                     .setTitle("Открыть рисунок")
                     .setMessage("Вы хотите перейти к редактированию этого рисунка?")
                     .setPositiveButton("Открыть", (dialog, which) -> {
+                        pendingImageData = cloudData;
                         Intent intent = new Intent(getActivity(), NewPaintingActivity.class);
-                        intent.putExtra("cloud_image_data", cloudData);
                         startActivity(intent);
                     })
                     .setNegativeButton("Отмена", null)
                     .show();
         });
+    }
+
+    private void deleteFromCloud() {
+        if (cloudId == null) return;
+        
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("paintings").document(cloudId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    if (isAdded() && getContext() != null) {
+                        Toast.makeText(requireContext(), "Рисунок удален", Toast.LENGTH_SHORT).show();
+                        if (getActivity() instanceof GalleryActivity) {
+                            ((GalleryActivity) getActivity()).loadCloudDrawings();
+                        } else if (getActivity() instanceof MainActivity) {
+                            ((MainActivity) getActivity()).loadRecentDrawings();
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded() && getContext() != null) {
+                        Toast.makeText(requireContext(), "Ошибка удаления", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void shareImage(Bitmap bitmap, String title) {
@@ -187,6 +238,7 @@ public class DrawingItemFragment extends Fragment {
     }
 
     private int dpToPx(int dp) {
+        if (!isAdded()) return 0;
         float density = getResources().getDisplayMetrics().density;
         return Math.round((float) dp * density);
     }

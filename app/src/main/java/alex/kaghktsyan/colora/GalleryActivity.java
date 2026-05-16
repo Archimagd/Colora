@@ -34,12 +34,14 @@ public class GalleryActivity extends AppCompatActivity {
     private CheckBox chipAll, chipRecent, chipFavorites;
     private String currentSearchQuery = "";
 
-    private static class CloudDrawing {
+    public static class CloudDrawing {
+        String id;
         String title;
         String data;
         long timestamp;
 
-        CloudDrawing(String title, String data, long timestamp) {
+        CloudDrawing(String id, String title, String data, long timestamp) {
+            this.id = id;
             this.title = title;
             this.data = data;
             this.timestamp = timestamp;
@@ -122,7 +124,7 @@ public class GalleryActivity extends AppCompatActivity {
         });
     }
 
-    private void loadCloudDrawings() {
+    public void loadCloudDrawings() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("paintings")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -135,7 +137,7 @@ public class GalleryActivity extends AppCompatActivity {
                         String data = doc.getString("image_data");
                         com.google.firebase.Timestamp ts = doc.getTimestamp("timestamp");
                         if (title != null && data != null && ts != null) {
-                            cloudDrawings.add(new CloudDrawing(title, data, ts.getSeconds()));
+                            cloudDrawings.add(new CloudDrawing(doc.getId(), title, data, ts.getSeconds()));
                         }
                     }
                     applyFilters();
@@ -169,8 +171,7 @@ public class GalleryActivity extends AppCompatActivity {
             }
 
             if (matchesSearch && matchesChip) {
-                // Исправлено: передаем 3 аргумента (title, data, isSmall = false)
-                DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(cd.title, cd.data, false);
+                DrawingItemFragment fragment = DrawingItemFragment.newInstanceFromCloud(cd.id, cd.title, cd.data, false);
                 addTransaction.add(galleryContainer.getId(), fragment);
                 totalCount++;
             }
